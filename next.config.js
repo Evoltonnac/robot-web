@@ -1,7 +1,6 @@
-const withLess = require('next-with-less')
 const path = require('path')
 
-module.exports = withLess({
+module.exports = {
     webpack(config, options) {
         config.resolve.alias['@'] = path.resolve(__dirname, '.')
         config.module.rules.push(
@@ -25,4 +24,4 @@ module.exports = withLess({
 
         return config
     },
-})
+}
