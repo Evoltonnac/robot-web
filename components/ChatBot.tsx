@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Button, Input } from '@mui/material'
+import { Container, Paper, Button, OutlinedInput } from '@mui/material'
 import { makeStyles } from '@mui/styles'
 import { Message, MessageType } from '@/types/ui/chat'
+import SendIcon from '@mui/icons-material/Send'
 import axios from 'axios'
 
 const useStyles = makeStyles({
@@ -50,22 +51,23 @@ export default function ChatBot() {
             type: MessageType.TEXT,
         }
         pushMessage(selfMsg)
+        setInputValue('')
         sendMsg(inputValue)
     }
 
     return (
-        <div>
+        <Container>
             <div>
                 {messageList.map((item, index) => (
-                    <div key={index}>{item.content}</div>
+                    <Paper key={index}>{item.content}</Paper>
                 ))}
             </div>
             <div className={classes.footer}>
-                <Input className={classes.input} value={inputValue} onChange={handleInputChange}></Input>
+                <OutlinedInput className={classes.input} value={inputValue} onChange={handleInputChange}></OutlinedInput>
                 <Button variant="contained" onClick={handleSend}>
-                    send
+                    <SendIcon />
                 </Button>
             </div>
-        </div>
+        </Container>
     )
 }
