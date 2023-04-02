@@ -1,7 +1,11 @@
+export interface Chat {
+    messages: Message[]
+}
+
 export interface Message {
     type: MessageType
     content: string
-    isSelf: 0 | 1
+    role: 'system' | 'user' | 'assistant'
 }
 
 export const enum MessageType {
