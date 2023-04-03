@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Container, Paper, Button, OutlinedInput } from '@mui/material'
 import { makeStyles } from '@mui/styles'
 import { Message, MessageType } from '@/types/ui/chat'
@@ -18,7 +18,8 @@ const useStyles = makeStyles({
         flex: 1,
     },
 })
-export default function ChatBot() {
+export default function ChatBot({ chatid }: { chatid: string }) {
+    // TODO: refactor styles
     const classes = useStyles()
     const [inputValue, setInputValue] = useState<string>('')
     const [messageList, setMessageList] = useState<Message[]>([])
@@ -31,29 +32,33 @@ export default function ChatBot() {
         setMessageList((prevState) => [...prevState, msg])
     }
 
-    const sendMsg = (content: string) => {
-        axios.post('/api/send', { content }).then((res) => {
+    const sendMsg = (selfMsg: Message) => {
+        axios.post(`/api/chat/${chatid}`, { message: selfMsg }).then((res) => {
             if (res.data?.data) {
-                const botMsg: Message = {
-                    isSelf: 0,
-                    content: res.data.data,
-                    type: MessageType.TEXT,
-                }
-                pushMessage(botMsg)
+                pushMessage(res.data?.data)
             }
         })
     }
 
     const handleSend = () => {
         const selfMsg: Message = {
-            isSelf: 1,
+            role: 'user',
             content: inputValue,
             type: MessageType.TEXT,
         }
         pushMessage(selfMsg)
         setInputValue('')
-        sendMsg(inputValue)
+        sendMsg(selfMsg)
     }
+
+    // TODO: getInitialProps
+    useEffect(() => {
+        axios.get(`/api/chat/${chatid}`).then((res) => {
+            if (res.data?.data?.messages?.length) {
+                setMessageList(res.data?.data?.messages)
+            }
+        })
+    }, [])
 
     return (
         <Container>

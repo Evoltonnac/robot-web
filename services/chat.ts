@@ -17,8 +17,11 @@ async function pushMessages(chatId: string, messages: Message[]) {
         if (!chat) {
             return
         }
+        console.log(chat.validateSync())
+
         chat.messages.push(...messages)
         await chat.save()
+        return chat
     } catch (error) {
         console.error(error)
         throw new Error('Failed to push message to chat')

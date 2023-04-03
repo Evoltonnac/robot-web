@@ -1,12 +1,5 @@
 import React from 'react'
-import Document, {
-    Html,
-    Head,
-    Main,
-    NextScript,
-    DocumentProps,
-    DocumentContext,
-} from 'next/document'
+import Document, { Html, Head, Main, NextScript, DocumentProps, DocumentContext } from 'next/document'
 import createEmotionServer from '@emotion/server/create-instance'
 import { AppType } from 'next/app'
 import theme, { roboto } from '@/src/themes/lightTheme'
@@ -15,7 +8,7 @@ import { ServerStyleSheets } from '@mui/styles'
 import { MyAppProps } from './_app'
 
 interface MyDocumentProps extends DocumentProps {
-  emotionStyleTags: JSX.Element[];
+    emotionStyleTags: JSX.Element[]
 }
 
 export default function MyDocument({ emotionStyleTags }: MyDocumentProps) {
@@ -37,7 +30,6 @@ export default function MyDocument({ emotionStyleTags }: MyDocumentProps) {
 }
 
 MyDocument.getInitialProps = async (ctx: DocumentContext) => {
-
     const originalRenderPage = ctx.renderPage
 
     const cache = createEmotionCache()

@@ -10,7 +10,7 @@ import createEmotionCache from '@/src/createEmotionCache'
 const clientSideEmotionCache = createEmotionCache()
 
 export interface MyAppProps extends AppProps {
-    emotionCache?: EmotionCache;
+    emotionCache?: EmotionCache
 }
 
 export default function MyApp(props: MyAppProps) {
