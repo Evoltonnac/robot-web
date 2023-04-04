@@ -1,5 +1,5 @@
 import Chat from '@/models/chat'
-import { Message } from '@/types/ui/chat'
+import { Message } from '@/types/model/chat'
 
 async function getChatById(chatId: string) {
     try {
@@ -17,7 +17,6 @@ async function pushMessages(chatId: string, messages: Message[]) {
         if (!chat) {
             return
         }
-        console.log(chat.validateSync())
 
         chat.messages.push(...messages)
         await chat.save()

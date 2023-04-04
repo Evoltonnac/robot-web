@@ -1,12 +1,16 @@
-import mongoose from 'mongoose'
+import mongoose, { Model } from 'mongoose'
+import { Chat as ChatType } from '@/types/model/chat'
 const Schema = mongoose.Schema
 
 const MessageSchema = new Schema({
     type: {
-        type: String,
+        type: Number,
+        enum: [1],
+        required: true,
     },
     content: {
         type: String,
+        required: true,
     },
     role: {
         type: String,
@@ -27,4 +31,6 @@ const ChatSchema = new Schema({
     },
 })
 
-export default mongoose.model('Chat') || mongoose.model('Chat', ChatSchema)
+const Chat: Model<ChatType> = mongoose.models.Chat || mongoose.model('Chat', ChatSchema)
+
+export default Chat

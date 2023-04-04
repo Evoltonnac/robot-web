@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Container, Paper, Button, OutlinedInput } from '@mui/material'
 import { makeStyles } from '@mui/styles'
-import { Message, MessageType } from '@/types/ui/chat'
+import { Message, MessageType } from '@/types/model/chat'
 import SendIcon from '@mui/icons-material/Send'
 import axios from 'axios'
+import { fetchEventSource } from '@microsoft/fetch-event-source'
 
 const useStyles = makeStyles({
     // css 对象
@@ -21,6 +22,7 @@ const useStyles = makeStyles({
 export default function ChatBot({ chatid }: { chatid: string }) {
     // TODO: refactor styles
     const classes = useStyles()
+    const [isLoading, setIsLoading] = useState(false)
     const [inputValue, setInputValue] = useState<string>('')
     const [messageList, setMessageList] = useState<Message[]>([])
 
@@ -28,16 +30,59 @@ export default function ChatBot({ chatid }: { chatid: string }) {
         setInputValue(e.target.value)
     }
 
-    const pushMessage = (msg: Message) => {
-        setMessageList((prevState) => [...prevState, msg])
+    const updateMessage = (msg: Message, index?: number) => {
+        setMessageList((prevState) => {
+            const length = prevState.length
+            if (typeof index !== 'number' || index === length) {
+                return [...prevState, msg]
+            } else if (index >= 0 && index < length) {
+                return prevState.splice(index, 1, msg)
+            }
+            return prevState
+        })
     }
 
-    const sendMsg = (selfMsg: Message) => {
-        axios.post(`/api/chat/${chatid}`, { message: selfMsg }).then((res) => {
-            if (res.data?.data) {
-                pushMessage(res.data?.data)
-            }
-        })
+    const sendMsg = async (selfMsg: Message) => {
+        setIsLoading(true)
+        let index = -1
+        try {
+            await fetchEventSource(`/api/chat/${chatid}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: selfMsg }),
+                async onopen(res) {
+                    if (res.ok && res.status === 200) {
+                        index = messageList.length
+                    } else {
+                        throw new Error()
+                    }
+                },
+                onmessage(msg) {
+                    console.log(msg)
+                    updateMessage(
+                        {
+                            role: 'assistant',
+                            content: msg.data,
+                            type: MessageType.TEXT,
+                        },
+                        index
+                    )
+                    if (msg.event === 'FatalError') {
+                        throw new Error(msg.data)
+                    }
+                },
+                onclose() {
+                    throw new Error()
+                },
+                onerror(err) {
+                    throw err
+                },
+            })
+        } catch (e) {
+            setIsLoading(false)
+        }
     }
 
     const handleSend = () => {
@@ -46,7 +91,7 @@ export default function ChatBot({ chatid }: { chatid: string }) {
             content: inputValue,
             type: MessageType.TEXT,
         }
-        pushMessage(selfMsg)
+        updateMessage(selfMsg)
         setInputValue('')
         sendMsg(selfMsg)
     }
@@ -69,7 +114,7 @@ export default function ChatBot({ chatid }: { chatid: string }) {
             </div>
             <div className={classes.footer}>
                 <OutlinedInput className={classes.input} value={inputValue} onChange={handleInputChange}></OutlinedInput>
-                <Button variant="contained" onClick={handleSend}>
+                <Button variant="contained" onClick={handleSend} disabled={isLoading || !inputValue}>
                     <SendIcon />
                 </Button>
             </div>

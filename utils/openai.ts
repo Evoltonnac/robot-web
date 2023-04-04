@@ -2,10 +2,13 @@ import { Configuration, OpenAIApi } from 'openai'
 import { SocksProxyAgent } from 'socks-proxy-agent'
 import {} from 'axios'
 
+export const ENCODER = new TextEncoder()
+export const DECODER = new TextDecoder()
+
 const proxyAgent = process.env.PROXY && new SocksProxyAgent(process.env.PROXY)
 let openai: OpenAIApi | null = null
 
-function getOpenai(): OpenAIApi {
+export function getOpenai(): OpenAIApi {
     if (openai) {
         return openai
     }
@@ -17,7 +20,7 @@ function getOpenai(): OpenAIApi {
 }
 
 type createChatCompletionParams = Parameters<OpenAIApi['createChatCompletion']>
-async function createChatCompletionWithProxy(req: createChatCompletionParams[0], options?: createChatCompletionParams[1]) {
+export async function createChatCompletionWithProxy(req: createChatCompletionParams[0], options?: createChatCompletionParams[1]) {
     return getOpenai().createChatCompletion(req, {
         ...(proxyAgent && {
             httpAgent: proxyAgent,
@@ -26,5 +29,3 @@ async function createChatCompletionWithProxy(req: createChatCompletionParams[0],
         ...options,
     })
 }
-
-export { getOpenai, createChatCompletionWithProxy }
