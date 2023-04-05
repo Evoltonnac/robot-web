@@ -4,7 +4,8 @@ import { makeStyles } from '@mui/styles'
 import { Message, MessageType } from '@/types/model/chat'
 import SendIcon from '@mui/icons-material/Send'
 import axios from 'axios'
-import { fetchEventSource } from '@microsoft/fetch-event-source'
+import { fetchEventSource } from '@microsoft/fetch-event-source/lib/cjs/index'
+import { DECODER } from '@/utils/shared'
 
 const useStyles = makeStyles({
     // css 对象
@@ -36,16 +37,21 @@ export default function ChatBot({ chatid }: { chatid: string }) {
             if (typeof index !== 'number' || index === length) {
                 return [...prevState, msg]
             } else if (index >= 0 && index < length) {
-                return prevState.splice(index, 1, msg)
+                prevState.splice(index, 1, msg)
+                return [...prevState]
             }
             return prevState
         })
     }
 
-    const sendMsg = async (selfMsg: Message) => {
+    const sendMsg = async (selfMsg: Message, index: number) => {
         setIsLoading(true)
-        let index = -1
         try {
+            const newMessage: Message = {
+                role: 'assistant',
+                type: MessageType.TEXT,
+                content: '',
+            }
             await fetchEventSource(`/api/chat/${chatid}`, {
                 method: 'POST',
                 headers: {
@@ -54,21 +60,17 @@ export default function ChatBot({ chatid }: { chatid: string }) {
                 body: JSON.stringify({ message: selfMsg }),
                 async onopen(res) {
                     if (res.ok && res.status === 200) {
-                        index = messageList.length
                     } else {
                         throw new Error()
                     }
                 },
                 onmessage(msg) {
-                    console.log(msg)
-                    updateMessage(
-                        {
-                            role: 'assistant',
-                            content: msg.data,
-                            type: MessageType.TEXT,
-                        },
-                        index
-                    )
+                    const buffer = msg.data.split(',') as unknown as Iterable<number>
+                    const { role, content, type } = JSON.parse(DECODER.decode(Uint8Array.from(buffer)))
+                    role && (newMessage.role = role)
+                    type && (newMessage.type = type)
+                    content && (newMessage.content += content)
+                    updateMessage(newMessage, index)
                     if (msg.event === 'FatalError') {
                         throw new Error(msg.data)
                     }
@@ -81,6 +83,7 @@ export default function ChatBot({ chatid }: { chatid: string }) {
                 },
             })
         } catch (e) {
+            console.log(e)
             setIsLoading(false)
         }
     }
@@ -93,7 +96,7 @@ export default function ChatBot({ chatid }: { chatid: string }) {
         }
         updateMessage(selfMsg)
         setInputValue('')
-        sendMsg(selfMsg)
+        sendMsg(selfMsg, messageList.length + 1)
     }
 
     // TODO: getInitialProps

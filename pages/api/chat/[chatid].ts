@@ -2,11 +2,11 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import createRouter from 'next-connect'
 import { getChatById, pushMessages } from '@/services/chat'
 import { dbMiddleware, DBRequest } from '@/utils/db'
-import { createChatCompletionWithProxy, DECODER } from '@/utils/openai'
+import { createChatCompletionWithProxy } from '@/utils/openai'
+import { DECODER, ENCODER } from '@/utils/shared'
 import { MessageType } from '@/types/model/chat'
 import { ChatCompletionRequestMessage } from 'openai'
-import { Stream } from 'stream'
-import { createParser } from 'eventsource-parser'
+import { createParser, ParsedEvent, ReconnectInterval } from 'eventsource-parser'
 
 const router = createRouter<NextApiRequest, NextApiResponse>()
 
@@ -34,6 +34,7 @@ router
             return next()
         }
         const messageList = chatData.messages.map(({ content, role }) => ({ content, role })) as ChatCompletionRequestMessage[]
+        const controller = new AbortController()
         let response = null as any
         response = await createChatCompletionWithProxy(
             {
@@ -42,25 +43,87 @@ router
                 temperature: 0,
                 stream: true,
             },
-            { responseType: 'stream' }
+            { responseType: 'stream', signal: controller.signal }
         )
-        const stream = response.data as Stream
-        const finalContent = ''
-        stream.on('data', (chunk) => {
-            if (chunk) {
-                const data = DECODER.decode(chunk).replace(/^\s*data:\s*/, '')
-                console.info(Date.now(), data)
+        const stream = response.data as NodeJS.ReadableStream
+
+        let finalContent = ''
+
+        const onParse = (event: ParsedEvent | ReconnectInterval) => {
+            if (event.type === 'event') {
+                const { data } = event
+                /**
+                 * Break if event stream finished.
+                 */
                 if (data === '[DONE]') {
+                    pushMessages(chatid.toString(), [
+                        {
+                            role: 'assistant',
+                            content: finalContent,
+                            type: MessageType.TEXT,
+                        },
+                    ])
                     res.end()
-                } else {
+                    return
+                }
+                try {
                     const parsed = JSON.parse(data)
-                    const { delta } = (parsed?.choices && parsed.choices[0]) || {}
-                    if (delta) {
+                    if (parsed?.choices) {
+                        const { choices } = parsed
+                        for (const choice of choices) {
+                            if (choice?.delta?.role) {
+                                res.setHeader('Access-Control-Allow-Origin', '*')
+                                res.setHeader('Content-Type', 'text/event-stream;charset=utf-8')
+                                res.setHeader('Cache-Control', 'no-cache, no-transform')
+                                res.setHeader('X-Accel-Buffering', 'no')
+                                res.write(
+                                    `data: ${ENCODER.encode(
+                                        JSON.stringify({
+                                            role: 'assistant',
+                                            type: MessageType.TEXT,
+                                        })
+                                    )}\n\n`
+                                )
+                            } else if (choice?.delta?.content) {
+                                finalContent += choice.delta.content
+                                res.write(
+                                    `data: ${ENCODER.encode(
+                                        JSON.stringify({
+                                            content: choice.delta.content,
+                                        })
+                                    )}\n\n`
+                                )
+                            }
+                            if (choice?.finish_reason === 'length') {
+                                pushMessages(chatid.toString(), [
+                                    {
+                                        role: 'assistant',
+                                        content: finalContent,
+                                        type: MessageType.TEXT,
+                                    },
+                                ])
+                                res.end()
+                            }
+                        }
                     }
-                    res.write(chunk)
+                } catch (e) {
+                    throw e
                 }
             }
-        })
+        }
+
+        const parser = createParser(onParse)
+        for await (const chunk of stream) {
+            const decoded = DECODER.decode(chunk as Buffer)
+
+            try {
+                const parsed = JSON.parse(decoded)
+
+                if (parsed.hasOwnProperty('error')) controller.abort()
+            } catch (e) {}
+
+            parser.feed(decoded)
+        }
 
         // stream.on('end', async () => {
         //     if (finalContent) {

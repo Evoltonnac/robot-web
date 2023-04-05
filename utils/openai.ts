@@ -1,9 +1,5 @@
 import { Configuration, OpenAIApi } from 'openai'
 import { SocksProxyAgent } from 'socks-proxy-agent'
-import {} from 'axios'
-
-export const ENCODER = new TextEncoder()
-export const DECODER = new TextDecoder()
 
 const proxyAgent = process.env.PROXY && new SocksProxyAgent(process.env.PROXY)
 let openai: OpenAIApi | null = null
