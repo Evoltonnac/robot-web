@@ -1,25 +1,19 @@
 import { useEffect, useState } from 'react'
-import { Container, Paper, Button, OutlinedInput } from '@mui/material'
+import { Container, Paper, Button, OutlinedInput, Box, Grid } from '@mui/material'
 import { makeStyles } from '@mui/styles'
 import { Message, MessageType } from '@/types/model/chat'
 import SendIcon from '@mui/icons-material/Send'
 import axios from 'axios'
 import { fetchEventSource } from '@microsoft/fetch-event-source/lib/cjs/index'
 import { DECODER } from '@/utils/shared'
+import MessageCard from './MessageCard'
 
 const useStyles = makeStyles({
-    // css 对象
-    footer: {
-        width: '100%',
-        position: 'fixed',
-        left: 0,
-        bottom: 0,
-        display: 'flex',
-    },
-    input: {
-        flex: 1,
+    sendButton: {
+        height: '100%',
     },
 })
+
 export default function ChatBot({ chatid }: { chatid: string }) {
     // TODO: refactor styles
     const classes = useStyles()
@@ -83,7 +77,6 @@ export default function ChatBot({ chatid }: { chatid: string }) {
                 },
             })
         } catch (e) {
-            console.log(e)
             setIsLoading(false)
         }
     }
@@ -110,17 +103,31 @@ export default function ChatBot({ chatid }: { chatid: string }) {
 
     return (
         <Container>
-            <div>
+            <Box pt={5} pb={20}>
                 {messageList.map((item, index) => (
-                    <Paper key={index}>{item.content}</Paper>
+                    <MessageCard key={index} message={item}></MessageCard>
                 ))}
-            </div>
-            <div className={classes.footer}>
-                <OutlinedInput className={classes.input} value={inputValue} onChange={handleInputChange}></OutlinedInput>
-                <Button variant="contained" onClick={handleSend} disabled={isLoading || !inputValue}>
-                    <SendIcon />
-                </Button>
-            </div>
+            </Box>
+            <Box position="fixed" left={0} bottom={0} width="100%" px={2} pb={2} bgcolor="background.default">
+                <Box p={1} borderRadius={2} width="100%" bgcolor="background.paper">
+                    <Grid container spacing={2}>
+                        <Grid item xs>
+                            <OutlinedInput size="small" value={inputValue} fullWidth onChange={handleInputChange}></OutlinedInput>
+                        </Grid>
+                        <Grid item xs={3} alignSelf="stretch">
+                            <Button
+                                className={classes.sendButton}
+                                variant="contained"
+                                fullWidth
+                                onClick={handleSend}
+                                disabled={isLoading || !inputValue}
+                            >
+                                <SendIcon />
+                            </Button>
+                        </Grid>
+                    </Grid>
+                </Box>
+            </Box>
         </Container>
     )
 }
