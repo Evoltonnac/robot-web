@@ -11,6 +11,22 @@ async function getChatById(chatId: string) {
     }
 }
 
+async function clearChatById(chatId: string) {
+    try {
+        const chat = await Chat.findById(chatId)
+        if (!chat) {
+            return
+        }
+
+        chat.messages = []
+        await chat.save()
+        return chat
+    } catch (error) {
+        console.error(error)
+        throw new Error('Failed to retrieve chat by ID')
+    }
+}
+
 async function pushMessages(chatId: string, messages: Message[]) {
     try {
         const chat = await getChatById(chatId)
@@ -27,4 +43,4 @@ async function pushMessages(chatId: string, messages: Message[]) {
     }
 }
 
-export { getChatById, pushMessages }
+export { getChatById, clearChatById, pushMessages }

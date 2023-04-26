@@ -3,10 +3,12 @@ import { Container, Paper, Button, OutlinedInput, Box, Grid } from '@mui/materia
 import { makeStyles } from '@mui/styles'
 import { Message, MessageType } from '@/types/model/chat'
 import SendIcon from '@mui/icons-material/Send'
+import DeleteOutlineRounded from '@mui/icons-material/DeleteOutlineRounded'
 import axios from 'axios'
 import { fetchEventSource } from '@microsoft/fetch-event-source/lib/cjs/index'
 import { DECODER } from '@/utils/shared'
 import MessageCard from './MessageCard'
+import { relative } from 'path'
 
 const useStyles = makeStyles({
     sendButton: {
@@ -14,7 +16,7 @@ const useStyles = makeStyles({
     },
 })
 
-export default function ChatBot({ chatid }: { chatid: string }) {
+const ChatBot = ({ chatid }: { chatid: string }) => {
     // TODO: refactor styles
     const classes = useStyles()
     const [isLoading, setIsLoading] = useState(false)
@@ -46,7 +48,7 @@ export default function ChatBot({ chatid }: { chatid: string }) {
                 type: MessageType.TEXT,
                 content: '',
             }
-            await fetchEventSource(`/api/chat/${chatid}`, {
+            await fetchEventSource(`/api/chat/${chatid}/send`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -92,7 +94,12 @@ export default function ChatBot({ chatid }: { chatid: string }) {
         sendMsg(selfMsg, messageList.length + 1)
     }
 
-    // TODO: getInitialProps
+    const handleClear = () => {
+        axios.post(`/api/chat/${chatid}/clear`).then((res) => {
+            setMessageList([])
+        })
+    }
+
     useEffect(() => {
         axios.get(`/api/chat/${chatid}`).then((res) => {
             if (res.data?.data?.messages?.length) {
@@ -107,6 +114,13 @@ export default function ChatBot({ chatid }: { chatid: string }) {
                 {messageList.map((item, index) => (
                     <MessageCard key={index} message={item}></MessageCard>
                 ))}
+                {messageList.length ? (
+                    <Box textAlign="center">
+                        <Button onClick={handleClear} color="error" endIcon={<DeleteOutlineRounded />}>
+                            清空此对话
+                        </Button>
+                    </Box>
+                ) : null}
             </Box>
             <Box position="fixed" left={0} bottom={0} width="100%" px={2} pb={2} bgcolor="background.default">
                 <Box p={1} borderRadius={2} width="100%" bgcolor="background.paper">
@@ -131,3 +145,5 @@ export default function ChatBot({ chatid }: { chatid: string }) {
         </Container>
     )
 }
+
+export default ChatBot

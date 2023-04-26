@@ -1,49 +1,77 @@
 import { Message } from '@/types/model/chat'
-import { Avatar, Box, Grid, Paper, Theme, Typography } from '@mui/material'
+import { Avatar, Grid, Paper, Box } from '@mui/material'
 import { deepOrange, teal } from '@mui/material/colors'
-import { makeStyles } from '@mui/styles'
+import { makeStyles } from 'tss-react/mui'
 import PersonIcon from '@mui/icons-material/Person'
+import Markdown, { MarkdownToJSX } from 'markdown-to-jsx'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { useTheme } from '@mui/material/styles'
+import { materialDark, materialLight } from 'react-syntax-highlighter/dist/cjs/styles/prism'
+
+const PreBlock: MarkdownToJSX.Override = ({ children }) => {
+    const { palette } = useTheme()
+
+    if (children && children.type && children.type === 'code') {
+        const lang = children.props.className ? children.props.className.replace('lang-', '') : 'tsx'
+        const codeStyle = palette.mode === 'light' ? materialLight : materialDark
+        return (
+            <SyntaxHighlighter language={lang} style={codeStyle}>
+                {children.props.children}
+            </SyntaxHighlighter>
+        )
+    }
+    return (
+        <Box component="pre" sx={{ whiteSpace: 'pre-wrap' }}>
+            {children}
+        </Box>
+    )
+}
 
 interface MessageCardProps {
     message: Message
 }
 
-const useStyles = makeStyles<Theme, MessageCardProps>({
-    userAvatar: {
-        backgroundColor: deepOrange[500],
-    },
-    robotAvatar: {
-        backgroundColor: teal[300],
-    },
-    message: {
-        minHeight: '100%',
-    },
+const useStyles = makeStyles<MessageCardProps>()((theme, { message }) => {
+    const isUser = message.role === 'user'
+    return {
+        avatar: {
+            backgroundColor: isUser ? deepOrange[500] : teal[300],
+        },
+        content: {
+            width: 'max-content',
+            maxWidth: '100%',
+            padding: theme.spacing(1),
+            overflow: 'hidden',
+            marginLeft: isUser ? '0' : 'auto',
+            marginRight: isUser ? 'auto' : '0',
+        },
+    }
 })
 
 const MessageCard: React.FC<MessageCardProps> = (props) => {
     const { message } = props
     const { role } = message
-    const classes = useStyles(props)
+    const { classes } = useStyles(props)
+
+    const isUser = role === 'user'
     return (
-        <Grid
-            container
-            gap={2}
-            width="90%"
-            ml={role === 'user' ? 0 : 'auto'}
-            flexDirection={role === 'user' ? 'row' : 'row-reverse'}
-            flexWrap="nowrap"
-            mb={2}
-        >
+        <Grid container width="90%" ml={isUser ? 0 : 'auto'} flexDirection={isUser ? 'row' : 'row-reverse'} flexWrap="nowrap" mb={2}>
             <Grid item flexShrink={0}>
-                <Avatar className={role === 'user' ? classes.userAvatar : classes.robotAvatar}>
-                    {role === 'user' ? '朕' : <PersonIcon />}
-                </Avatar>
+                <Avatar className={classes.avatar}>{isUser ? '朕' : <PersonIcon />}</Avatar>
             </Grid>
-            <Grid item xs={10} flexShrink={1}>
-                <Paper className={classes.message} elevation={2}>
-                    <Typography variant="body1" p={1} whiteSpace="pre-wrap">
+            <Grid item flex="1" overflow="hidden" px={2} pb={1}>
+                <Paper className={classes.content} elevation={2}>
+                    <Markdown
+                        options={{
+                            wrapper: 'article',
+                            forceWrapper: true,
+                            overrides: {
+                                pre: PreBlock,
+                            },
+                        }}
+                    >
                         {message.content}
-                    </Typography>
+                    </Markdown>
                 </Paper>
             </Grid>
         </Grid>
