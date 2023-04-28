@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Container, Paper, Button, OutlinedInput, Box, Grid } from '@mui/material'
+import { Container, Button, OutlinedInput, Box, Grid } from '@mui/material'
 import { makeStyles } from '@mui/styles'
 import { Message, MessageType } from '@/types/model/chat'
 import SendIcon from '@mui/icons-material/Send'
 import DeleteOutlineRounded from '@mui/icons-material/DeleteOutlineRounded'
-import axios from 'axios'
 import { fetchEventSource } from '@microsoft/fetch-event-source/lib/cjs/index'
 import { DECODER } from '@/utils/shared'
 import MessageCard from './MessageCard'
-import { relative } from 'path'
+import { clientRequest } from '@/src/utils/request'
 
 const useStyles = makeStyles({
     sendButton: {
@@ -95,13 +94,13 @@ const ChatBot = ({ chatid }: { chatid: string }) => {
     }
 
     const handleClear = () => {
-        axios.post(`/api/chat/${chatid}/clear`).then((res) => {
+        clientRequest.post(`/api/chat/${chatid}/clear`).then(() => {
             setMessageList([])
         })
     }
 
     useEffect(() => {
-        axios.get(`/api/chat/${chatid}`).then((res) => {
+        clientRequest.get(`/api/chat/${chatid}`).then((res) => {
             if (res.data?.data?.messages?.length) {
                 setMessageList(res.data?.data?.messages)
             }
