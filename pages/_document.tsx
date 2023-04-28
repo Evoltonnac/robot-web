@@ -3,7 +3,7 @@ import Document, { Html, Head, Main, NextScript, DocumentProps, DocumentContext 
 import createEmotionServer from '@emotion/server/create-instance'
 import { AppType } from 'next/app'
 import theme, { roboto } from '@/src/themes/lightTheme'
-import createEmotionCache from '@/src/createEmotionCache'
+import createEmotionCache from '@/src/themes/createEmotionCache'
 import { ServerStyleSheets } from '@mui/styles'
 import { MyAppProps } from './_app'
 

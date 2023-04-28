@@ -4,7 +4,9 @@ import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { CacheProvider, EmotionCache } from '@emotion/react'
 import theme from '@/src/themes/lightTheme'
-import createEmotionCache from '@/src/createEmotionCache'
+import createEmotionCache from '@/src/themes/createEmotionCache'
+import { RequestInterceptor } from '@/components/global/RequestInterceptor'
+import { SnackbarProvider } from 'notistack'
 
 // Client-side cache, shared for the whole session of the user in the browser.
 const clientSideEmotionCache = createEmotionCache()
@@ -23,7 +25,11 @@ export default function MyApp(props: MyAppProps) {
             <ThemeProvider theme={theme}>
                 {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
                 <CssBaseline />
-                <Component {...pageProps} />
+                <SnackbarProvider>
+                    <RequestInterceptor>
+                        <Component {...pageProps} />
+                    </RequestInterceptor>
+                </SnackbarProvider>
             </ThemeProvider>
         </CacheProvider>
     )
