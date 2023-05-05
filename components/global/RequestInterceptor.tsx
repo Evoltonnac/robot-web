@@ -13,11 +13,11 @@ export const RequestInterceptor: React.FC<Props> = ({ children }) => {
     const [isSet, setIsSet] = useState(false)
     const clientResponseInterceptor = useRef(0)
     if (!isSet) {
+        setIsSet(true)
         clientResponseInterceptor.current = clientRequest.interceptors.response.use(
             resHandleInterceptor,
             errorHandleInterceptor(sendNotification)
         )
-        setIsSet(true)
     }
     // eject interceptor when unmounted
     useEffect(() => {

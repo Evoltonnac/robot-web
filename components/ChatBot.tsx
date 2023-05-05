@@ -8,6 +8,7 @@ import { fetchEventSource } from '@microsoft/fetch-event-source/lib/cjs/index'
 import { DECODER } from '@/utils/shared'
 import MessageCard from './MessageCard'
 import { clientRequest } from '@/src/utils/request'
+import { getAuthorizationHeader } from '@/src/utils/auth'
 
 const useStyles = makeStyles({
     sendButton: {
@@ -51,6 +52,7 @@ const ChatBot = ({ chatid }: { chatid: string }) => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...getAuthorizationHeader(),
                 },
                 body: JSON.stringify({ message: selfMsg }),
                 async onopen(res) {

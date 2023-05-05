@@ -1,16 +1,19 @@
-import axios, { AxiosResponse, InternalAxiosRequestConfig } from 'axios'
+import axios, { AxiosResponse, CreateAxiosDefaults, InternalAxiosRequestConfig } from 'axios'
 import { getAuthorizationHeader, logOut } from './auth'
-import type { NextApiResponse } from 'next'
 import { SendNotification } from '@/src/hooks/useNotification'
+import { GetServerSidePropsContext } from 'next'
+
+const dev = process.env.NODE_ENV !== 'production'
 
 interface EnhancedAxiosRequestConfig extends InternalAxiosRequestConfig {
-    serverRes?: NextApiResponse // res object at serverside in nextjs
+    nextCtx?: GetServerSidePropsContext // res object at serverside in nextjs
 }
 
 // add header
-const addTokenInterceptor = (config: InternalAxiosRequestConfig) => {
-    const authorizationHeader = getAuthorizationHeader()
-    config.headers.concat(authorizationHeader)
+const addTokenInterceptor = (config: EnhancedAxiosRequestConfig) => {
+    const { nextCtx } = config
+    const authorizationHeader = getAuthorizationHeader(nextCtx?.req)
+    Object.assign(config.headers, authorizationHeader)
     return config
 }
 
@@ -32,8 +35,8 @@ export const errorHandleInterceptor = (sendNotification?: SendNotification) => (
         const { errno, errmsg } = resData || {}
         // not logged
         if (status === 401) {
-            const { serverRes } = error.request.config as EnhancedAxiosRequestConfig
-            logOut(serverRes)
+            const { nextCtx } = error.config as EnhancedAxiosRequestConfig
+            logOut(nextCtx?.res)
         }
         // other error message
         if (errno && errmsg) {
@@ -48,11 +51,12 @@ export const errorHandleInterceptor = (sendNotification?: SendNotification) => (
 }
 
 // shared axios instance both at client and server side
-const sharedRequest = () => {
+const sharedRequest = (options?: CreateAxiosDefaults) => {
     // axios instance for making requests
     const axiosInstance = axios.create({
         timeout: 6000,
         params: {},
+        ...options,
     })
 
     axiosInstance.interceptors.request.use(addTokenInterceptor)
@@ -60,17 +64,32 @@ const sharedRequest = () => {
 }
 
 // axios instance at server side
-export const serverRequest = (serverRes?: NextApiResponse) => {
-    const axiosInstance = sharedRequest()
+export const serverRequest = (nextCtx?: GetServerSidePropsContext) => {
+    const axiosInstance = sharedRequest({
+        baseURL: dev ? 'http://robot-web.com:3000' : 'https://robot-web-evoltonnac.vercel.app',
+    })
     // add custom ctx to axios request config
-    serverRes &&
+    nextCtx &&
         axiosInstance.interceptors.request.use((config: EnhancedAxiosRequestConfig) => {
-            config.serverRes = serverRes
+            config.nextCtx = nextCtx
             return config
         })
     axiosInstance.interceptors.response.use(resHandleInterceptor, errorHandleInterceptor())
+    console.log(nextCtx)
     return axiosInstance
 }
 
 // axios instance at client side
 export const clientRequest = sharedRequest()
+
+// axios instance at both sides (e.g. getInitialProps)
+export const commonRequest = (nextCtx?: GetServerSidePropsContext) => {
+    // server side
+    if (typeof window === 'undefined') {
+        return serverRequest(nextCtx)
+    }
+    // client side
+    else {
+        return clientRequest
+    }
+}

@@ -1,5 +1,8 @@
+import { Types } from 'mongoose'
+
 export interface Chat {
     messages: Message[]
+    user: Types.ObjectId
 }
 
 export interface Message {
