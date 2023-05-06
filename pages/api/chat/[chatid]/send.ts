@@ -39,7 +39,7 @@ router
             },
             { responseType: 'stream', signal: controller.signal }
         )
-        const stream = response.data as NodeJS.ReadableStream
+        const stream = response.data as NodeJS.ReadStream
 
         let finalContent = ''
 
@@ -50,13 +50,14 @@ router
                  * Break if event stream finished.
                  */
                 if (data === '[DONE]') {
-                    pushMessages(_id, chatid.toString(), [
-                        {
-                            role: 'assistant',
-                            content: finalContent,
-                            type: MessageType.TEXT,
-                        },
-                    ])
+                    finalContent &&
+                        pushMessages(_id, chatid.toString(), [
+                            {
+                                role: 'assistant',
+                                content: finalContent,
+                                type: MessageType.TEXT,
+                            },
+                        ])
                     res.end()
                     return
                 }
@@ -89,13 +90,14 @@ router
                                 )
                             }
                             if (choice?.finish_reason === 'length') {
-                                pushMessages(_id, chatid.toString(), [
-                                    {
-                                        role: 'assistant',
-                                        content: finalContent,
-                                        type: MessageType.TEXT,
-                                    },
-                                ])
+                                finalContent &&
+                                    pushMessages(_id, chatid.toString(), [
+                                        {
+                                            role: 'assistant',
+                                            content: finalContent,
+                                            type: MessageType.TEXT,
+                                        },
+                                    ])
                                 res.end()
                             }
                         }
@@ -105,6 +107,19 @@ router
                 }
             }
         }
+        res.on('close', () => {
+            controller.abort()
+            stream.destroy()
+            finalContent &&
+                pushMessages(_id, chatid.toString(), [
+                    {
+                        role: 'assistant',
+                        content: finalContent,
+                        type: MessageType.TEXT,
+                    },
+                ])
+            res.end()
+        })
 
         const parser = createParser(onParse)
         for await (const chunk of stream) {

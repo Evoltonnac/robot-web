@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Container, Button, OutlinedInput, Box, Grid } from '@mui/material'
 import { makeStyles } from '@mui/styles'
 import { Message, MessageType } from '@/types/model/chat'
@@ -22,6 +22,7 @@ const ChatBot = ({ chatid }: { chatid: string }) => {
     const [isLoading, setIsLoading] = useState(false)
     const [inputValue, setInputValue] = useState<string>('')
     const [messageList, setMessageList] = useState<Message[]>([])
+    const sendCtrl = useRef<AbortController>()
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setInputValue(e.target.value)
@@ -42,6 +43,7 @@ const ChatBot = ({ chatid }: { chatid: string }) => {
 
     const sendMsg = async (selfMsg: Message, index: number) => {
         setIsLoading(true)
+        sendCtrl.current = new AbortController()
         try {
             const newMessage: Message = {
                 role: 'assistant',
@@ -55,6 +57,7 @@ const ChatBot = ({ chatid }: { chatid: string }) => {
                     ...getAuthorizationHeader(),
                 },
                 body: JSON.stringify({ message: selfMsg }),
+                signal: sendCtrl.current.signal,
                 async onopen(res) {
                     if (res.ok && res.status === 200) {
                     } else {
@@ -100,14 +103,23 @@ const ChatBot = ({ chatid }: { chatid: string }) => {
             setMessageList([])
         })
     }
+    const handleAbort = () => {
+        sendCtrl.current?.abort()
+        setIsLoading(false)
+    }
 
     useEffect(() => {
-        clientRequest.get(`/api/chat/${chatid}`).then((res) => {
-            if (res.data?.data?.messages?.length) {
-                setMessageList(res.data?.data?.messages)
+        clientRequest.get(`/api/chat/${chatid}`).then((data) => {
+            if (data?.messages?.length) {
+                setMessageList(data?.messages)
             }
         })
+        // abort send event stream when unmounted
+        return handleAbort
     }, [])
+
+    // abort send event stream when close
+    window.addEventListener('beforeunload', handleAbort)
 
     return (
         <Container>
@@ -117,9 +129,15 @@ const ChatBot = ({ chatid }: { chatid: string }) => {
                 ))}
                 {messageList.length ? (
                     <Box textAlign="center">
-                        <Button onClick={handleClear} color="error" endIcon={<DeleteOutlineRounded />}>
-                            清空此对话
-                        </Button>
+                        {isLoading ? (
+                            <Button onClick={handleAbort} color="error">
+                                停止响应
+                            </Button>
+                        ) : (
+                            <Button onClick={handleClear} color="error" endIcon={<DeleteOutlineRounded />}>
+                                清空此对话
+                            </Button>
+                        )}
                     </Box>
                 ) : null}
             </Box>
