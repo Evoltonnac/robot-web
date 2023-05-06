@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNotification } from '@/src/hooks/useNotification'
 import { clientRequest, errorHandleInterceptor, resHandleInterceptor } from '@/src/utils/request'
+import { FCProps } from '@/types/view/common'
 
-type Props = {
-    children?: React.ReactNode
-}
 // client axios wrapper FC to embed hooks
-export const RequestInterceptor: React.FC<Props> = ({ children }) => {
+export const RequestInterceptor: React.FC<FCProps> = ({ children }) => {
     const sendNotification = useNotification()
 
     // use interceptor before render, then children can trigger interceptor in their useEffect

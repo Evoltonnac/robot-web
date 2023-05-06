@@ -36,7 +36,7 @@ export const errorHandleInterceptor = (sendNotification?: SendNotification) => (
         // not logged
         if (status === 401) {
             const { nextCtx } = error.config as EnhancedAxiosRequestConfig
-            logOut(nextCtx?.res)
+            logOut(nextCtx)
         }
         // other error message
         if (errno && errmsg) {
@@ -75,7 +75,6 @@ export const serverRequest = (nextCtx?: GetServerSidePropsContext) => {
             return config
         })
     axiosInstance.interceptors.response.use(resHandleInterceptor, errorHandleInterceptor())
-    console.log(nextCtx)
     return axiosInstance
 }
 

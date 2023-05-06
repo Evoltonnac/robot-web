@@ -7,6 +7,7 @@ import theme from '@/src/themes/lightTheme'
 import createEmotionCache from '@/src/themes/createEmotionCache'
 import { RequestInterceptor } from '@/components/global/RequestInterceptor'
 import { SnackbarProvider } from 'notistack'
+import { UserProvider } from '@/components/global/User'
 
 // Client-side cache, shared for the whole session of the user in the browser.
 const clientSideEmotionCache = createEmotionCache()
@@ -27,7 +28,9 @@ export default function MyApp(props: MyAppProps) {
                 <CssBaseline />
                 <SnackbarProvider>
                     <RequestInterceptor>
-                        <Component {...pageProps} />
+                        <UserProvider>
+                            <Component {...pageProps} />
+                        </UserProvider>
                     </RequestInterceptor>
                 </SnackbarProvider>
             </ThemeProvider>

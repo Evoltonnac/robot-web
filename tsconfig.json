@@ -20,7 +20,11 @@
         "incremental": true,
         "paths": {
             "@/*": ["./*"]
-        }
+        },
+        "typeRoots": [
+            "./node_modules/@types",
+            "./types",
+        ]
     },
     "include": [
         "next-env.d.ts",
