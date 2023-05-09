@@ -50,7 +50,7 @@ export const errorHandleInterceptor = (sendNotification?: SendNotification) => (
     return Promise.reject(error)
 }
 
-// shared axios instance both at client and server side
+// shared axios factory both at client and server side
 const sharedRequest = (options?: CreateAxiosDefaults) => {
     // axios instance for making requests
     const axiosInstance = axios.create({
@@ -78,8 +78,15 @@ export const serverRequest = (nextCtx?: GetServerSidePropsContext) => {
     return axiosInstance
 }
 
-// axios instance at client side
+// axios instance at client side，this instance will add interceptors at rendering in RequestInterceptor.tsx
 export const clientRequest = sharedRequest()
+
+// pure axios instance without any interaction
+export const pureRequest = (function () {
+    const axiosInstance = sharedRequest()
+    axiosInstance.interceptors.response.use(resHandleInterceptor, null)
+    return axiosInstance
+})()
 
 // axios instance at both sides (e.g. getInitialProps)
 export const commonRequest = (nextCtx?: GetServerSidePropsContext) => {

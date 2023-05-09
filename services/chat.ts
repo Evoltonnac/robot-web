@@ -1,5 +1,6 @@
 import Chat from '@/models/chat'
 import { Message } from '@/types/model/chat'
+import _ from 'lodash'
 import { Types } from 'mongoose'
 
 async function getChatById(userId: Types.ObjectId, chatId: string) {
@@ -8,7 +9,6 @@ async function getChatById(userId: Types.ObjectId, chatId: string) {
         if (!chat || !chat.user.equals(userId)) {
             throw new Error('no auth')
         }
-
         return chat
     } catch (error) {
         console.error(error)
@@ -63,16 +63,26 @@ async function pushMessages(userId: Types.ObjectId, chatId: string, messages: Me
 
 async function getChatList(userId: Types.ObjectId) {
     try {
-        const chats = await Chat.find(
+        const chats = await Chat.aggregate([
             {
-                user: userId,
+                $match: {
+                    user: userId,
+                },
             },
             {
-                _id: 1,
-                user: 0,
-                messages: { $slice: 1 },
-            }
-        )
+                $addFields: {
+                    messagesInfo: {
+                        total: { $size: '$messages' },
+                        first: { $ifNull: [{ $arrayElemAt: ['$messages.content', 0] }, ''] },
+                    },
+                },
+            },
+            {
+                $project: {
+                    messages: 0,
+                },
+            },
+        ])
         return chats
     } catch (error) {
         console.error(error)

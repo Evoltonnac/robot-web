@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
 
-const connectionString = process.env.MONGO_URL || ''
+const connectionString = process.env.MONGODB_URI || ''
 
 async function connectToDatabase(): Promise<mongoose.Connection> {
     console.log('connect db start ' + Date.now())

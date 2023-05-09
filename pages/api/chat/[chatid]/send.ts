@@ -17,12 +17,13 @@ router
     .post(async (req: AuthRequest, res, next) => {
         const { chatid } = req.query
         const { message } = req.body
+        const { role, type, content } = message
         const { _id } = req.currentUser
         if (!chatid) {
             res.status(404)
             return next()
         }
-        const chatData = await pushMessages(_id, chatid.toString(), [message])
+        const chatData = await pushMessages(_id, chatid.toString(), [{ role, type, content }])
         if (!chatData) {
             res.status(500)
             return next()
@@ -42,6 +43,21 @@ router
         const stream = response.data as NodeJS.ReadStream
 
         let finalContent = ''
+        let isStore = false
+
+        const storeFinalContent = () => {
+            if (isStore || !finalContent) {
+                return
+            }
+            isStore = true
+            pushMessages(_id, chatid.toString(), [
+                {
+                    role: 'assistant',
+                    content: finalContent,
+                    type: MessageType.TEXT,
+                },
+            ])
+        }
 
         const onParse = (event: ParsedEvent | ReconnectInterval) => {
             if (event.type === 'event') {
@@ -50,14 +66,7 @@ router
                  * Break if event stream finished.
                  */
                 if (data === '[DONE]') {
-                    finalContent &&
-                        pushMessages(_id, chatid.toString(), [
-                            {
-                                role: 'assistant',
-                                content: finalContent,
-                                type: MessageType.TEXT,
-                            },
-                        ])
+                    storeFinalContent()
                     res.end()
                     return
                 }
@@ -90,14 +99,7 @@ router
                                 )
                             }
                             if (choice?.finish_reason === 'length') {
-                                finalContent &&
-                                    pushMessages(_id, chatid.toString(), [
-                                        {
-                                            role: 'assistant',
-                                            content: finalContent,
-                                            type: MessageType.TEXT,
-                                        },
-                                    ])
+                                storeFinalContent()
                                 res.end()
                             }
                         }
@@ -110,14 +112,7 @@ router
         res.on('close', () => {
             controller.abort()
             stream.destroy()
-            finalContent &&
-                pushMessages(_id, chatid.toString(), [
-                    {
-                        role: 'assistant',
-                        content: finalContent,
-                        type: MessageType.TEXT,
-                    },
-                ])
+            storeFinalContent()
             res.end()
         })
 

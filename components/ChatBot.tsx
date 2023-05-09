@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { Container, Button, OutlinedInput, Box, Grid } from '@mui/material'
-import { makeStyles } from '@mui/styles'
-import { Message, MessageType } from '@/types/model/chat'
+import { Button, OutlinedInput, Box, Grid } from '@mui/material'
+import { makeStyles } from 'tss-react/mui'
+import { Message } from '@/types/view/chat'
 import SendIcon from '@mui/icons-material/Send'
 import DeleteOutlineRounded from '@mui/icons-material/DeleteOutlineRounded'
 import { fetchEventSource } from '@microsoft/fetch-event-source/lib/cjs/index'
@@ -9,19 +9,31 @@ import { DECODER } from '@/utils/shared'
 import MessageCard from './MessageCard'
 import { clientRequest } from '@/src/utils/request'
 import { getAuthorizationHeader } from '@/src/utils/auth'
+import { Chat } from '@/types/view/chat'
+import { MessageType } from '@/types/model/chat'
+import _ from 'lodash'
 
-const useStyles = makeStyles({
+const useStyles = makeStyles()((theme) => ({
+    footerCard: {
+        width: '100%',
+        padding: theme.spacing(1),
+        borderRadius: theme.shape.borderRadius,
+        backgroundColor: theme.palette.background.paper,
+        boxShadow: theme.shadows[2],
+    },
     sendButton: {
         height: '100%',
     },
-})
+}))
 
 const ChatBot = ({ chatid }: { chatid: string }) => {
     // TODO: refactor styles
-    const classes = useStyles()
+    const { classes } = useStyles()
+    const elContainer = useRef<HTMLDivElement>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [inputValue, setInputValue] = useState<string>('')
     const [messageList, setMessageList] = useState<Message[]>([])
+    const isSubmitting = useRef<boolean>(false)
     const sendCtrl = useRef<AbortController>()
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,6 +61,7 @@ const ChatBot = ({ chatid }: { chatid: string }) => {
                 role: 'assistant',
                 type: MessageType.TEXT,
                 content: '',
+                _id: '' + Date.now(),
             }
             await fetchEventSource(`/api/chat/${chatid}/send`, {
                 method: 'POST',
@@ -58,6 +71,7 @@ const ChatBot = ({ chatid }: { chatid: string }) => {
                 },
                 body: JSON.stringify({ message: selfMsg }),
                 signal: sendCtrl.current.signal,
+                openWhenHidden: true,
                 async onopen(res) {
                     if (res.ok && res.status === 200) {
                     } else {
@@ -87,20 +101,31 @@ const ChatBot = ({ chatid }: { chatid: string }) => {
         }
     }
 
-    const handleSend = () => {
+    const handleSend = async () => {
+        if (isSubmitting.current) {
+            return
+        }
+        isSubmitting.current = true
         const selfMsg: Message = {
             role: 'user',
             content: inputValue,
             type: MessageType.TEXT,
+            _id: '' + Date.now(),
         }
         updateMessage(selfMsg)
         setInputValue('')
-        sendMsg(selfMsg, messageList.length + 1)
+        await sendMsg(selfMsg, messageList.length + 1)
+        isSubmitting.current = false
     }
 
     const handleClear = () => {
+        if (isSubmitting.current) {
+            return
+        }
+        isSubmitting.current = true
         clientRequest.post(`/api/chat/${chatid}/clear`).then(() => {
             setMessageList([])
+            isSubmitting.current = false
         })
     }
     const handleAbort = () => {
@@ -108,8 +133,19 @@ const ChatBot = ({ chatid }: { chatid: string }) => {
         setIsLoading(false)
     }
 
+    const scrollToBottom = _.throttle(() => {
+        const el = elContainer.current
+        if (el) {
+            el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+        }
+    }, 300)
+
     useEffect(() => {
-        clientRequest.get(`/api/chat/${chatid}`).then((data) => {
+        scrollToBottom()
+    }, [messageList])
+
+    useEffect(() => {
+        clientRequest.get<Chat>(`/api/chat/${chatid}`).then((data) => {
             if (data?.messages?.length) {
                 setMessageList(data?.messages)
             }
@@ -122,8 +158,14 @@ const ChatBot = ({ chatid }: { chatid: string }) => {
     window.addEventListener('beforeunload', handleAbort)
 
     return (
-        <Container>
-            <Box pt={5} pb={20}>
+        <Box
+            ref={elContainer}
+            sx={{
+                maxHeight: '100vh',
+                overflow: 'scroll',
+            }}
+        >
+            <Box pt={5} pb={20} px={2}>
                 {messageList.map((item, index) => (
                     <MessageCard key={index} message={item}></MessageCard>
                 ))}
@@ -142,12 +184,12 @@ const ChatBot = ({ chatid }: { chatid: string }) => {
                 ) : null}
             </Box>
             <Box position="fixed" left={0} bottom={0} width="100%" px={2} pb={2} bgcolor="background.default">
-                <Box p={1} borderRadius={2} width="100%" bgcolor="background.paper">
+                <Box className={classes.footerCard}>
                     <Grid container spacing={2}>
                         <Grid item xs>
                             <OutlinedInput size="small" value={inputValue} fullWidth onChange={handleInputChange}></OutlinedInput>
                         </Grid>
-                        <Grid item xs={3} alignSelf="stretch">
+                        <Grid item width={100} alignSelf="stretch">
                             <Button
                                 className={classes.sendButton}
                                 variant="contained"
@@ -161,7 +203,7 @@ const ChatBot = ({ chatid }: { chatid: string }) => {
                     </Grid>
                 </Box>
             </Box>
-        </Container>
+        </Box>
     )
 }
 

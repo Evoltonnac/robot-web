@@ -26,6 +26,9 @@ const theme = createTheme({
             default: blueGrey[50],
         },
     },
+    shape: {
+        borderRadius: 8,
+    },
     typography: {
         fontFamily: roboto.style.fontFamily,
     },

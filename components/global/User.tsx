@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@/types/view/user'
 import { FCProps } from '@/types/view/common'
-import { clientRequest } from '@/src/utils/request'
+import { pureRequest } from '@/src/utils/request'
 
 const UserContext = createContext<User | undefined>(undefined)
 
@@ -12,7 +12,7 @@ export const useUser = () => {
 export const UserProvider: React.FC<FCProps> = ({ children }) => {
     const [userData, setUserData] = useState<User>()
     useEffect(() => {
-        clientRequest.get('/api/user').then((data) => {
+        pureRequest.get<User>('/api/user').then((data) => {
             setUserData(data)
         })
     }, [])

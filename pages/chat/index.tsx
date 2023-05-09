@@ -1,15 +1,16 @@
-import ChatList from '@/components/ChatList'
+import { ChatList, useChatList } from '@/components/ChatList'
 import { commonRequest } from '@/src/utils/request'
-import { Chat } from '@/types/view/chat'
+import { ChatListItem } from '@/types/view/chat'
+import { Container } from '@mui/material'
 import Head from 'next/head'
 import { GetServerSideProps, InferGetServerSidePropsType, NextPage } from 'next/types'
 
 type ChatListPageProps = {
-    chatList: Chat[]
+    chatList: ChatListItem[]
 }
 
 export const getServerSideProps: GetServerSideProps<ChatListPageProps> = async (ctx) => {
-    const data = (await commonRequest(ctx).get('/api/chat')) as Chat[]
+    const data = await commonRequest(ctx).get<ChatListItem[]>('/api/chat')
     return {
         props: {
             chatList: data || [],
@@ -18,12 +19,15 @@ export const getServerSideProps: GetServerSideProps<ChatListPageProps> = async (
 }
 
 const Chat: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = ({ chatList }) => {
+    const { list, actions } = useChatList(chatList)
     return (
         <>
             <Head>
-                <title>登录</title>
+                <title>所有对话</title>
             </Head>
-            <ChatList chatList={chatList}></ChatList>
+            <Container>
+                <ChatList list={list} actions={actions}></ChatList>
+            </Container>
         </>
     )
 }
