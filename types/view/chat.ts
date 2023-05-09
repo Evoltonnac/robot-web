@@ -1,7 +1,7 @@
-import * as ChatModal from '../model/chat'
+import * as ChatModel from '../model/chat'
 import { withId } from './common'
 
-export type Chat = withId<ChatModal.Chat> & {
+export type Chat = withId<ChatModel.Chat> & {
     messages: Message[]
 }
 
@@ -12,4 +12,4 @@ export type ChatListItem = Chat & {
     }
 }
 
-export type Message = withId<ChatModal.Message>
+export type Message = withId<ChatModel.Message>
