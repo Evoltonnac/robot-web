@@ -1,4 +1,4 @@
-import { Message } from '@/types/model/chat'
+import { Message } from '@/types/view/chat'
 import { Avatar, Grid, Paper, Box } from '@mui/material'
 import { deepOrange, teal } from '@mui/material/colors'
 import { makeStyles } from 'tss-react/mui'
@@ -60,7 +60,7 @@ const MessageCard: React.FC<MessageCardProps> = (props) => {
                 <Avatar className={classes.avatar}>{isUser ? '朕' : <PersonIcon />}</Avatar>
             </Grid>
             <Grid item flex="1" overflow="hidden" px={2} pb={1}>
-                <Paper className={classes.content} elevation={2}>
+                <Paper className={classes.content} elevation={0}>
                     <Markdown
                         options={{
                             wrapper: 'article',
