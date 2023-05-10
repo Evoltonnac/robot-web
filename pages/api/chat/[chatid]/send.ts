@@ -1,5 +1,5 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
-import createRouter from 'next-connect'
+import type { NextApiResponse } from 'next'
+import { createRouter } from 'next-connect'
 import { pushMessages } from '@/services/chat'
 import { dbMiddleware } from '@/services/middlewares/db'
 import { createChatCompletionWithProxy } from '@/utils/openai'
@@ -9,7 +9,7 @@ import { ChatCompletionRequestMessage } from 'openai'
 import { createParser, ParsedEvent, ReconnectInterval } from 'eventsource-parser'
 import { AuthRequest, authMiddleware } from '@/services/middlewares/auth'
 
-const router = createRouter<NextApiRequest, NextApiResponse>()
+const router = createRouter<AuthRequest, NextApiResponse>()
 
 router
     .use(dbMiddleware)
@@ -130,4 +130,4 @@ router
         }
     })
 
-export default router
+export default router.handler()
