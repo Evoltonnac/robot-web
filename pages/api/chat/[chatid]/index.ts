@@ -32,4 +32,4 @@ router
         res.end()
     })
 
-export default router
+export default router.handler()

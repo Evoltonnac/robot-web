@@ -11,7 +11,7 @@ const router = createRouter<DBRequest, NextApiResponse>()
 
 router.use(dbMiddleware).post(async (req, res) => {
     const { username, password } = req.body
-    const user = await (await getUserByName(username)).toObject()
+    const user = (await getUserByName(username)).toObject()
     if (password === user.password) {
         const accessToken = generateJWT(user)
         setCookie(res, 'AccessToken', accessToken, { domain: DOMAIN, path: '/' })
@@ -23,4 +23,4 @@ router.use(dbMiddleware).post(async (req, res) => {
     }
 })
 
-export default router
+export default router.handler()
