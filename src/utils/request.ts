@@ -35,8 +35,7 @@ export const errorHandleInterceptor = (sendNotification?: SendNotification) => (
         const { errno, errmsg } = resData || {}
         // not logged
         if (status === 401) {
-            const { nextCtx } = error.config as EnhancedAxiosRequestConfig
-            logOut(nextCtx)
+            logOut()
         }
         // other error message
         if (errno && errmsg) {
