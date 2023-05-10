@@ -1,15 +1,15 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
-import createRouter from 'next-connect'
+import type { NextApiResponse } from 'next'
+import { createRouter } from 'next-connect'
 import { deleteChatById, getChatById } from '@/services/chat'
 import { dbMiddleware } from '@/services/middlewares/db'
 import { AuthRequest, authMiddleware } from '@/services/middlewares/auth'
 
-const router = createRouter<NextApiRequest, NextApiResponse>()
+const router = createRouter<AuthRequest, NextApiResponse>()
 
 router
     .use(dbMiddleware)
     .use(authMiddleware)
-    .get(async (req: AuthRequest, res, next) => {
+    .get(async (req, res, next) => {
         const { chatid } = req.query
         const { _id } = req.currentUser
         if (!chatid) {
@@ -18,8 +18,9 @@ router
         }
         const chatData = await getChatById(_id, chatid.toString())
         res.status(200).json({ data: chatData })
+        res.end()
     })
-    .delete(async (req: AuthRequest, res, next) => {
+    .delete(async (req, res, next) => {
         const { _id } = req.currentUser
         const { chatid } = req.query
         if (!chatid) {
@@ -28,6 +29,7 @@ router
         }
         await deleteChatById(_id, chatid.toString())
         res.status(200).json({ data: null })
+        res.end()
     })
 
 export default router
