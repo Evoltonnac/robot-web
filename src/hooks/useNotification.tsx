@@ -1,7 +1,7 @@
 import { SnackbarKey, useSnackbar } from 'notistack'
 import IconButton from '@mui/material/IconButton'
 import { Fragment, useEffect, useState } from 'react'
-import { Close } from '@mui/icons-material'
+import Close from '@mui/icons-material/Close'
 
 interface NotificationProps {
     msg: string
