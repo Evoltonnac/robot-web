@@ -3,7 +3,8 @@ import { Chat, ChatListItem } from '@/types/view/chat'
 import Router from 'next/router'
 import { clientRequest } from '@/src/utils/request'
 import { useRef, useState } from 'react'
-import { Delete, Add } from '@mui/icons-material'
+import Add from '@mui/icons-material/Add'
+import Delete from '@mui/icons-material/Delete'
 import { makeStyles } from 'tss-react/mui'
 
 export const useChatList = (chatList: ChatListItem[]) => {

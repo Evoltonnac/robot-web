@@ -3,7 +3,7 @@ import Router from 'next/router'
 import Login from '@/components/Login'
 import { useUser } from '@/components/global/User'
 import { useState } from 'react'
-import { SwapHoriz } from '@mui/icons-material'
+import SwapHoriz from '@mui/icons-material/SwapHoriz'
 import { Box, Button } from '@mui/material'
 
 export default function Home() {
