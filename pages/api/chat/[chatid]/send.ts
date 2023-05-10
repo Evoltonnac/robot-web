@@ -9,10 +9,6 @@ import { ChatCompletionRequestMessage } from 'openai'
 import { createParser, ParsedEvent, ReconnectInterval } from 'eventsource-parser'
 import { AuthRequest, authMiddleware } from '@/services/middlewares/auth'
 
-export const config = {
-    runtime: 'edge',
-}
-
 const router = createRouter<AuthRequest, NextApiResponse>()
 
 router
