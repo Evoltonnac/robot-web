@@ -1,133 +1,155 @@
-import type { NextApiResponse } from 'next'
-import { createRouter } from 'next-connect'
-import { pushMessages } from '@/services/chat'
-import { dbMiddleware } from '@/services/middlewares/db'
-import { createChatCompletionWithProxy } from '@/utils/openai'
+import { createEdgeRouter } from 'next-connect'
 import { DECODER, ENCODER } from '@/utils/shared'
-import { MessageType } from '@/types/model/chat'
-import { ChatCompletionRequestMessage } from 'openai'
+import { Chat, Message, MessageType } from '@/types/model/chat'
 import { createParser, ParsedEvent, ReconnectInterval } from 'eventsource-parser'
-import { AuthRequest, authMiddleware } from '@/services/middlewares/auth'
+import { NextFetchEvent, NextRequest, NextResponse } from 'next/server'
+import { getOpenai } from '@/utils/openai'
+import { ChatCompletionRequestMessage } from '@/lib/openai-edge/types/chat'
 
-const router = createRouter<AuthRequest, NextApiResponse>()
+const pushMessage = async (req: NextRequest, chatId: string, message: Message, messageId?: string): Promise<Chat> => {
+    const authorization = req.headers.get('authorization') || ''
+    const response = await fetch(`${req.nextUrl.origin}/api/chat/${chatId}/message`, {
+        method: 'POST',
+        body: JSON.stringify({
+            message,
+            ...(messageId && { messageId }),
+        }),
+        headers: {
+            authorization,
+            'Content-Type': 'application/json',
+        },
+        redirect: 'manual',
+    })
+    return (await response.json()).data
+}
 
-router
-    .use(dbMiddleware)
-    .use(authMiddleware)
-    .post(async (req: AuthRequest, res, next) => {
-        const { chatid } = req.query
-        const { message } = req.body
-        const { role, type, content } = message
-        const { _id } = req.currentUser
-        if (!chatid) {
-            res.status(404)
-            return next()
+const router = createEdgeRouter<NextRequest, NextFetchEvent>()
+
+router.post(async (req) => {
+    const chatid = req.nextUrl.searchParams.get('chatid')
+    const message = (await req.json()).message
+    const { role, type, content } = message
+    if (!chatid) {
+        return new NextResponse('No chatid', {
+            status: 500,
+        })
+    }
+    const chatData = await pushMessage(req, chatid, { role, type, content })
+    // return NextResponse.json(chatData)
+    if (!chatData) {
+        return new NextResponse('Send Fail', {
+            status: 500,
+        })
+    }
+    const messageList = chatData.messages.map(({ content, role }) => ({ content, role })) as ChatCompletionRequestMessage[]
+    const response = await getOpenai().createChatCompletion({
+        model: 'gpt-3.5-turbo',
+        messages: messageList,
+        max_tokens: 100,
+        temperature: 0,
+        stream: true,
+    })
+
+    let finalContent = ''
+    let isStore = false
+
+    const storeFinalContent = () => {
+        if (isStore || !finalContent) {
+            return
         }
-        const chatData = await pushMessages(_id, chatid.toString(), [{ role, type, content }])
-        if (!chatData) {
-            res.status(500)
-            return next()
-        }
-        const messageList = chatData.messages.map(({ content, role }) => ({ content, role })) as ChatCompletionRequestMessage[]
-        const controller = new AbortController()
-        let response = null as any
-        response = await createChatCompletionWithProxy(
-            {
-                model: 'gpt-3.5-turbo-0301',
-                messages: messageList,
-                temperature: 0,
-                stream: true,
-            },
-            { responseType: 'stream', signal: controller.signal }
-        )
-        const stream = response.data as NodeJS.ReadStream
+        isStore = true
+        pushMessage(req, chatid, {
+            role: 'assistant',
+            content: finalContent,
+            type: MessageType.TEXT,
+        })
+    }
 
-        let finalContent = ''
-        let isStore = false
-
-        const storeFinalContent = () => {
-            if (isStore || !finalContent) {
-                return
-            }
-            isStore = true
-            pushMessages(_id, chatid.toString(), [
-                {
-                    role: 'assistant',
-                    content: finalContent,
-                    type: MessageType.TEXT,
-                },
-            ])
-        }
-
-        const onParse = (event: ParsedEvent | ReconnectInterval) => {
-            if (event.type === 'event') {
-                const { data } = event
-                /**
-                 * Break if event stream finished.
-                 */
-                if (data === '[DONE]') {
-                    storeFinalContent()
-                    res.end()
-                    return
-                }
-                try {
-                    const parsed = JSON.parse(data)
-                    if (parsed?.choices) {
-                        const { choices } = parsed
-                        for (const choice of choices) {
-                            if (choice?.delta?.role) {
-                                res.setHeader('Access-Control-Allow-Origin', '*')
-                                res.setHeader('Content-Type', 'text/event-stream;charset=utf-8')
-                                res.setHeader('Cache-Control', 'no-cache, no-transform')
-                                res.setHeader('X-Accel-Buffering', 'no')
-                                res.write(
-                                    `data: ${ENCODER.encode(
-                                        JSON.stringify({
-                                            role: 'assistant',
-                                            type: MessageType.TEXT,
-                                        })
-                                    )}\n\n`
-                                )
-                            } else if (choice?.delta?.content) {
-                                finalContent += choice.delta.content
-                                res.write(
-                                    `data: ${ENCODER.encode(
-                                        JSON.stringify({
-                                            content: choice.delta.content,
-                                        })
-                                    )}\n\n`
-                                )
-                            }
-                            if (choice?.finish_reason === 'length') {
-                                storeFinalContent()
-                                res.end()
+    const stream = new ReadableStream({
+        async start(controller) {
+            const onParse = (event: ParsedEvent | ReconnectInterval) => {
+                if (event.type === 'event') {
+                    const { data } = event
+                    /**
+                     * Break if event stream finished.
+                     */
+                    if (data === '[DONE]') {
+                        storeFinalContent()
+                        controller.close()
+                        return
+                    }
+                    try {
+                        const parsed = JSON.parse(data)
+                        if (parsed?.choices) {
+                            const { choices } = parsed
+                            for (const choice of choices) {
+                                if (choice?.delta?.role) {
+                                    controller.enqueue(
+                                        ENCODER.encode(
+                                            `data: ${ENCODER.encode(
+                                                JSON.stringify({
+                                                    role: 'assistant',
+                                                    type: MessageType.TEXT,
+                                                })
+                                            )}\n\n`
+                                        )
+                                    )
+                                } else if (choice?.delta?.content) {
+                                    finalContent += choice.delta.content
+                                    controller.enqueue(
+                                        ENCODER.encode(
+                                            `data: ${ENCODER.encode(
+                                                JSON.stringify({
+                                                    content: choice.delta.content,
+                                                })
+                                            )}\n\n`
+                                        )
+                                    )
+                                }
+                                if (choice?.finish_reason === 'length') {
+                                    storeFinalContent()
+                                    controller.close()
+                                }
                             }
                         }
+                    } catch (e) {
+                        throw e
                     }
-                } catch (e) {
-                    throw e
                 }
             }
-        }
-        res.on('close', () => {
-            controller.abort()
-            stream.destroy()
+
+            const parser = createParser(onParse)
+            if (response.body) {
+                for await (const chunk of response.body as any) {
+                    const decoded = DECODER.decode(chunk as Buffer)
+
+                    try {
+                        const parsed = JSON.parse(decoded)
+
+                        if (parsed.hasOwnProperty('error')) controller.close()
+                    } catch (e) {}
+
+                    parser.feed(decoded)
+                }
+            }
+        },
+        cancel() {
+            console.log('cancel')
             storeFinalContent()
-            res.end()
-        })
-
-        const parser = createParser(onParse)
-        for await (const chunk of stream) {
-            const decoded = DECODER.decode(chunk as Buffer)
-
-            try {
-                const parsed = JSON.parse(decoded)
-
-                if (parsed.hasOwnProperty('error')) controller.abort()
-            } catch (e) {}
-
-            parser.feed(decoded)
-        }
+        },
     })
+
+    return new Response(stream, {
+        headers: {
+            'Content-Type': 'text/event-stream;charset=utf-8',
+            'Cache-Control': 'no-cache, no-transform',
+            'X-Accel-Buffering': 'no',
+        },
+    })
+})
+
+export const config = {
+    runtime: 'edge',
+}
 
 export default router.handler()

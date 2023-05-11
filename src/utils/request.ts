@@ -39,10 +39,10 @@ export const errorHandleInterceptor = (sendNotification?: SendNotification) => (
         }
         // other error message
         if (errno && errmsg) {
-            sendNotification ? sendNotification({ msg: errmsg, variant: 'error' }) : console.log(errmsg)
+            sendNotification ? sendNotification({ msg: errmsg, variant: 'error' }) : console.error(errmsg)
         }
     } else if (error.request) {
-        console.log('timeout')
+        console.error('timeout')
     } else {
         // handle other errors
     }
