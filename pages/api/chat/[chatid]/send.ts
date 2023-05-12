@@ -149,7 +149,7 @@ router.post(async (req) => {
 })
 
 export const config = {
-    runtime: 'edge',
+    runtime: 'experimental-edge',
 }
 
 export default router.handler()

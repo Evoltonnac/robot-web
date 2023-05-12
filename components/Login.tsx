@@ -27,6 +27,10 @@ const Login: React.FC<LoginProps> = ({ isRegister }) => {
 
     const handleSubmit = () => {
         if (stage === 0) {
+            if (!username) {
+                sendNotification({ msg: '请输入用户名', variant: 'error' })
+                return
+            }
             setStage(1)
         } else if (stage === 1) {
             if (isRegister) {
@@ -48,20 +52,13 @@ const Login: React.FC<LoginProps> = ({ isRegister }) => {
     return (
         <Grid p={5} container spacing={2} direction="column" alignItems="center">
             <Grid item>
-                <TextField
-                    aria-required={false}
-                    id="username"
-                    label="用户名"
-                    variant="outlined"
-                    value={username}
-                    onChange={handleUsernameChange}
-                />
+                <TextField size="small" id="username" label="用户名" variant="outlined" value={username} onChange={handleUsernameChange} />
             </Grid>
             {stage === 1 ? (
                 <>
                     <Grid item>
                         <TextField
-                            aria-required={false}
+                            size="small"
                             id="password"
                             label="密码"
                             variant="outlined"
@@ -73,7 +70,7 @@ const Login: React.FC<LoginProps> = ({ isRegister }) => {
                     {isRegister ? (
                         <Grid item>
                             <TextField
-                                aria-required={false}
+                                size="small"
                                 id="repeat-password"
                                 label="重复密码"
                                 variant="outlined"
@@ -85,7 +82,11 @@ const Login: React.FC<LoginProps> = ({ isRegister }) => {
                     ) : null}
                 </>
             ) : null}
-            <Button onClick={handleSubmit}>{stage === 0 ? '下一步' : '一键登录'}</Button>
+            <Grid item>
+                <Button variant="contained" onClick={handleSubmit}>
+                    {stage === 0 ? '下一步' : '一键登录'}
+                </Button>
+            </Grid>
         </Grid>
     )
 }

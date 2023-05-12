@@ -171,11 +171,10 @@ const ChatBot = ({ chatid }: { chatid: string }) => {
                 ))}
                 {messageList.length ? (
                     <Box textAlign="center">
-                        {isLoading ? (
-                            <Button onClick={handleAbort} color="error">
-                                停止响应
-                            </Button>
-                        ) : (
+                        {isLoading ? null : (
+                            // <Button onClick={handleAbort} color="error">
+                            //     停止响应
+                            // </Button>
                             <Button onClick={handleClear} color="error" endIcon={<DeleteOutlineRounded />}>
                                 清空此对话
                             </Button>
