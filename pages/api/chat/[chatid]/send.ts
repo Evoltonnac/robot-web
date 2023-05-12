@@ -51,30 +51,35 @@ router.post(async (req) => {
     })
 
     let finalContent = ''
-    let isStore = false
+    let storePromise: Promise<Chat | null> | undefined
 
+    // return a promise to store message
+    // in edge functions, store fetch will be aborted if close stream immediately after fetch
+    // so, use await or maybe settimeout to close after the post request reach server
     const storeFinalContent = () => {
-        if (isStore || !finalContent) {
-            return
+        if (!finalContent) {
+            return Promise.resolve()
         }
-        isStore = true
-        pushMessage(req, chatid, {
+        if (storePromise) {
+            return storePromise
+        }
+        return (storePromise = pushMessage(req, chatid, {
             role: 'assistant',
             content: finalContent,
             type: MessageType.TEXT,
-        })
+        }))
     }
 
     const stream = new ReadableStream({
         async start(controller) {
-            const onParse = (event: ParsedEvent | ReconnectInterval) => {
+            const onParse = async (event: ParsedEvent | ReconnectInterval) => {
                 if (event.type === 'event') {
                     const { data } = event
                     /**
                      * Break if event stream finished.
                      */
                     if (data === '[DONE]') {
-                        storeFinalContent()
+                        await storeFinalContent()
                         controller.close()
                         return
                     }
@@ -107,7 +112,7 @@ router.post(async (req) => {
                                     )
                                 }
                                 if (choice?.finish_reason === 'length') {
-                                    storeFinalContent()
+                                    await storeFinalContent()
                                     controller.close()
                                 }
                             }
@@ -133,9 +138,8 @@ router.post(async (req) => {
                 }
             }
         },
-        cancel() {
-            console.log('cancel')
-            storeFinalContent()
+        cancel: async () => {
+            await storeFinalContent()
         },
     })
 
