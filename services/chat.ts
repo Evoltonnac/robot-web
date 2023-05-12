@@ -61,6 +61,31 @@ async function pushMessages(userId: Types.ObjectId, chatId: string, messages: Me
     }
 }
 
+async function updataMessage(userId: Types.ObjectId, chatId: string, messageId: string, message: Message) {
+    try {
+        await Chat.updateOne(
+            {
+                user: userId,
+                _id: chatId,
+            },
+            {
+                $set: { 'messages.$[message]': message },
+            },
+            {
+                arrayFilters: [
+                    {
+                        'message._id': messageId,
+                    },
+                ],
+            }
+        )
+        return
+    } catch (error) {
+        console.error(error)
+        throw new Error('Failed to update message to chat')
+    }
+}
+
 async function getChatList(userId: Types.ObjectId) {
     try {
         const chats = await Chat.aggregate([
@@ -90,4 +115,4 @@ async function getChatList(userId: Types.ObjectId) {
     }
 }
 
-export { getChatById, addChat, deleteChatById, clearChatById, pushMessages, getChatList }
+export { getChatById, addChat, deleteChatById, clearChatById, pushMessages, updataMessage, getChatList }

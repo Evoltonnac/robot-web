@@ -1,7 +1,5 @@
-import { Configuration, OpenAIApi } from 'openai'
-import { SocksProxyAgent } from 'socks-proxy-agent'
+import { Configuration, OpenAIApi } from '@/lib/openai-edge'
 
-const proxyAgent = process.env.PROXY && new SocksProxyAgent(process.env.PROXY)
 let openai: OpenAIApi | null = null
 
 export function getOpenai(): OpenAIApi {
@@ -13,15 +11,4 @@ export function getOpenai(): OpenAIApi {
     })
     openai = new OpenAIApi(configuration)
     return openai
-}
-
-type createChatCompletionParams = Parameters<OpenAIApi['createChatCompletion']>
-export async function createChatCompletionWithProxy(req: createChatCompletionParams[0], options?: createChatCompletionParams[1]) {
-    return getOpenai().createChatCompletion(req, {
-        ...(proxyAgent && {
-            httpAgent: proxyAgent,
-            httpsAgent: proxyAgent,
-        }),
-        ...options,
-    })
 }
