@@ -54,6 +54,7 @@ router.post(async (req) => {
     let isStore = false
 
     const storeFinalContent = () => {
+        console.info('store', isStore, finalContent)
         if (isStore || !finalContent) {
             return
         }
