@@ -53,13 +53,12 @@ router.post(async (req) => {
     let finalContent = ''
     let isStore = false
 
-    const storeFinalContent = () => {
-        console.info('store', isStore, finalContent)
+    const storeFinalContent = async () => {
         if (isStore || !finalContent) {
             return
         }
         isStore = true
-        pushMessage(req, chatid, {
+        await pushMessage(req, chatid, {
             role: 'assistant',
             content: finalContent,
             type: MessageType.TEXT,
@@ -68,14 +67,14 @@ router.post(async (req) => {
 
     const stream = new ReadableStream({
         async start(controller) {
-            const onParse = (event: ParsedEvent | ReconnectInterval) => {
+            const onParse = async (event: ParsedEvent | ReconnectInterval) => {
                 if (event.type === 'event') {
                     const { data } = event
                     /**
                      * Break if event stream finished.
                      */
                     if (data === '[DONE]') {
-                        storeFinalContent()
+                        await storeFinalContent()
                         controller.close()
                         return
                     }
@@ -108,7 +107,7 @@ router.post(async (req) => {
                                     )
                                 }
                                 if (choice?.finish_reason === 'length') {
-                                    storeFinalContent()
+                                    await storeFinalContent()
                                     controller.close()
                                 }
                             }
@@ -134,9 +133,8 @@ router.post(async (req) => {
                 }
             }
         },
-        cancel() {
-            console.log('cancel')
-            storeFinalContent()
+        cancel: async () => {
+            await storeFinalContent()
         },
     })
 
