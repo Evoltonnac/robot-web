@@ -51,18 +51,23 @@ router.post(async (req) => {
     })
 
     let finalContent = ''
-    let isStore = false
+    let storePromise: Promise<Chat | null> | undefined
 
-    const storeFinalContent = async () => {
-        if (isStore || !finalContent) {
-            return
+    // return a promise to store message
+    // in edge functions, store fetch will be aborted if close stream immediately after fetch
+    // so, use await or maybe settimeout to close after the post request reach server
+    const storeFinalContent = () => {
+        if (!finalContent) {
+            return Promise.resolve()
         }
-        isStore = true
-        await pushMessage(req, chatid, {
+        if (storePromise) {
+            return storePromise
+        }
+        return (storePromise = pushMessage(req, chatid, {
             role: 'assistant',
             content: finalContent,
             type: MessageType.TEXT,
-        })
+        }))
     }
 
     const stream = new ReadableStream({
