@@ -76,9 +76,9 @@ export function toBoom(error: unknown, payload?: ErrorData): Boom | void {
 // HOF make a function return or throw Boom error
 export const tryOrBoom =
     <T extends (...args: any[]) => any>(fn: T, payload?: ErrorData) =>
-    (...args: Parameters<T>): ReturnType<T> => {
+    async (...args: Parameters<T>): Promise<ReturnType<T>> => {
         try {
-            return fn(...args)
+            return await fn(...args)
         } catch (error) {
             throw toBoom(error, payload)
         }

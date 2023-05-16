@@ -30,10 +30,10 @@ export async function authMiddleware(req: AuthRequest, res: NextApiResponse, nex
         // check if user exists
         const user = await getUserByName(decoded?.username)
         req.currentUser = user.toObject()
-        await next()
     } catch (err) {
         throw Boom.unauthorized('用户未登录')
     }
+    await next()
 }
 
 // generateJWT from user
