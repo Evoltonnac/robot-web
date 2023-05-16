@@ -2,9 +2,10 @@ import { createEdgeRouter } from 'next-connect'
 import { DECODER, ENCODER } from '@/utils/shared'
 import { Chat, Message, MessageType } from '@/types/model/chat'
 import { createParser, ParsedEvent, ReconnectInterval } from 'eventsource-parser'
-import { NextFetchEvent, NextRequest, NextResponse } from 'next/server'
+import { NextFetchEvent, NextRequest } from 'next/server'
 import { getOpenai } from '@/utils/openai'
 import { ChatCompletionRequestMessage } from '@/lib/openai-edge/types/chat'
+import { errorHandlerEdge } from '@/services/middlewares/edge'
 
 const pushMessage = async (req: NextRequest, chatId: string, message: Message, messageId?: string): Promise<Chat> => {
     const authorization = req.headers.get('authorization') || ''
@@ -30,16 +31,12 @@ router.post(async (req) => {
     const message = (await req.json()).message
     const { role, type, content } = message
     if (!chatid) {
-        return new NextResponse('No chatid', {
-            status: 500,
-        })
+        throw new Error(JSON.stringify({ errno: 'A0401', errmsg: '聊天内容不存在', status: 404 }))
     }
     const chatData = await pushMessage(req, chatid, { role, type, content })
     // return NextResponse.json(chatData)
     if (!chatData) {
-        return new NextResponse('Send Fail', {
-            status: 500,
-        })
+        throw new Error(JSON.stringify({ errno: 'A0404', errmsg: '发送消息失败' }))
     }
     const messageList = chatData.messages.map(({ content, role }) => ({ content, role })) as ChatCompletionRequestMessage[]
     const response = await getOpenai().createChatCompletion({
@@ -156,4 +153,6 @@ export const config = {
     runtime: 'experimental-edge',
 }
 
-export default router.handler()
+export default router.handler({
+    onError: errorHandlerEdge,
+})

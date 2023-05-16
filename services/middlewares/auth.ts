@@ -5,6 +5,7 @@ import { Types } from 'mongoose'
 import jwt, { JwtPayload } from 'jsonwebtoken'
 import { getUserByName } from '../user'
 import { DBRequest } from './db'
+import Boom from '@hapi/boom'
 
 const { JWT_SECRET = '' } = process.env
 const JWT_VERSION = '1'
@@ -29,11 +30,9 @@ export async function authMiddleware(req: AuthRequest, res: NextApiResponse, nex
         // check if user exists
         const user = await getUserByName(decoded?.username)
         req.currentUser = user.toObject()
-        return next()
+        await next()
     } catch (err) {
-        res.status(401).json({ errno: 1, errmsg: '用户未登录' })
-        res.end()
-        return
+        throw Boom.unauthorized('用户未登录')
     }
 }
 
