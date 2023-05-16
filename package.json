@@ -12,6 +12,7 @@
     "@emotion/react": "^11.10.6",
     "@emotion/server": "^11.10.0",
     "@emotion/styled": "^11.10.6",
+    "@hapi/boom": "^10.0.1",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@mui/icons-material": "^5.11.11",
     "@mui/material": "^5.11.15",
@@ -37,6 +38,7 @@
     "tss-react": "^4.8.2"
   },
   "devDependencies": {
+    "@types/boom": "^7.3.2",
     "@types/cookie": "^0.5.1",
     "@types/js-cookie": "^3.0.3",
     "@types/jsonwebtoken": "^9.0.2",

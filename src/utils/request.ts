@@ -38,7 +38,7 @@ export const errorHandleInterceptor = (sendNotification?: SendNotification) => (
             logOut()
         }
         // other error message
-        if (errno && errmsg) {
+        if (+errno !== 0 && errmsg) {
             sendNotification ? sendNotification({ msg: errmsg, variant: 'error' }) : console.error(errmsg)
         }
     } else if (error.request) {

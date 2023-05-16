@@ -1,68 +1,93 @@
 import Chat from '@/models/chat'
 import { Message } from '@/types/model/chat'
-import _ from 'lodash'
+import { ErrorData } from '@/types/server/common'
+import Boom from '@hapi/boom'
 import { Types } from 'mongoose'
+import { tryOrBoom } from './middlewares/error'
+import { ChatListItem } from '@/types/view/chat'
 
-async function getChatById(userId: Types.ObjectId, chatId: string) {
-    try {
+const getChatById = tryOrBoom(
+    async (userId: Types.ObjectId, chatId: string) => {
         const chat = await Chat.findById(chatId)
-        if (!chat || !chat.user.equals(userId)) {
-            throw new Error('no auth')
+        if (!chat) {
+            throw Boom.notFound<ErrorData>('', {
+                errno: 'A0402',
+                errmsg: '聊天不存在',
+            })
+        }
+        if (!chat.user.equals(userId)) {
+            throw Boom.forbidden<ErrorData>('', {
+                errno: 'A0403',
+                errmsg: '当前用户无权限',
+            })
         }
         return chat
-    } catch (error) {
-        console.error(error)
-        throw new Error('Failed to retrieve chat by ID')
+    },
+    {
+        errno: 'B0401',
+        errmsg: '获取聊天信息失败',
     }
-}
+)
 
 // add new chat and return the new chat object
-async function addChat(userId: Types.ObjectId) {
-    const newChat = new Chat({
-        user: userId,
-        messages: [],
-    })
-    newChat.save()
-    return newChat
-}
+const addChat = tryOrBoom(
+    async (userId: Types.ObjectId) => {
+        const newChat = new Chat({
+            user: userId,
+            messages: [],
+        })
+        newChat.save()
+        return newChat
+    },
+    {
+        errno: 'B0302',
+        errmsg: '新增聊天失败',
+    }
+)
 
-// add new chat and return the new chat object
-async function deleteChatById(userId: Types.ObjectId, chatId: string) {
-    try {
+// delete chat
+const deleteChatById = tryOrBoom(
+    async (userId: Types.ObjectId, chatId: string) => {
         await Chat.findOneAndDelete({ user: userId, _id: chatId })
         return
-    } catch (error) {
-        console.error(error)
-        throw new Error('Failed to retrieve chat by ID')
+    },
+    {
+        errno: 'B0303',
+        errmsg: '删除聊天失败',
     }
-}
+)
 
-async function clearChatById(userId: Types.ObjectId, chatId: string) {
-    try {
+// clear all messages of a chat
+const clearChatById = tryOrBoom(
+    async (userId: Types.ObjectId, chatId: string) => {
         const chat = await getChatById(userId, chatId)
         chat.messages = []
         await chat.save()
         return chat
-    } catch (error) {
-        console.error(error)
-        throw new Error('Failed to retrieve chat by ID')
+    },
+    {
+        errno: 'B0402',
+        errmsg: '清空聊天记录失败',
     }
-}
+)
 
-async function pushMessages(userId: Types.ObjectId, chatId: string, messages: Message[]) {
-    try {
+// push messages to a chat
+const pushMessages = tryOrBoom(
+    async (userId: Types.ObjectId, chatId: string, messages: Message[]) => {
         const chat = await getChatById(userId, chatId)
         chat.messages.push(...messages)
         await chat.save()
         return chat
-    } catch (error) {
-        console.error(error)
-        throw new Error('Failed to push message to chat')
+    },
+    {
+        errno: 'B0403',
+        errmsg: '发送消息失败',
     }
-}
+)
 
-async function updataMessage(userId: Types.ObjectId, chatId: string, messageId: string, message: Message) {
-    try {
+// updata a message to a chat
+const updataMessage = tryOrBoom(
+    async (userId: Types.ObjectId, chatId: string, messageId: string, message: Message) => {
         await Chat.updateOne(
             {
                 user: userId,
@@ -80,15 +105,17 @@ async function updataMessage(userId: Types.ObjectId, chatId: string, messageId: 
             }
         )
         return
-    } catch (error) {
-        console.error(error)
-        throw new Error('Failed to update message to chat')
+    },
+    {
+        errno: 'B0404',
+        errmsg: '更新消息失败',
     }
-}
+)
 
-async function getChatList(userId: Types.ObjectId) {
-    try {
-        const chats = await Chat.aggregate([
+// get chat list of a user
+const getChatList = tryOrBoom(
+    async (userId: Types.ObjectId) => {
+        const chats = await Chat.aggregate<ChatListItem>([
             {
                 $match: {
                     user: userId,
@@ -109,10 +136,11 @@ async function getChatList(userId: Types.ObjectId) {
             },
         ])
         return chats
-    } catch (error) {
-        console.error(error)
-        throw new Error('Failed to retrieve chats')
+    },
+    {
+        errno: 'B0301',
+        errmsg: '获取聊天列表失败',
     }
-}
+)
 
 export { getChatById, addChat, deleteChatById, clearChatById, pushMessages, updataMessage, getChatList }
