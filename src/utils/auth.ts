@@ -1,4 +1,4 @@
-import { clientCookies, SharedCookie } from '@/utils/shared'
+import { clientCookie, SharedCookie } from '@/utils/shared'
 import { GetServerSidePropsContext } from 'next'
 import Router from 'next/router'
 // get current user token header
@@ -15,7 +15,7 @@ export const getAuthorizationHeader = (req?: GetServerSidePropsContext['req']) =
  */
 export const logOut = () => {
     if (typeof window !== 'undefined') {
-        clientCookies.remove('currentUser')
+        clientCookie.remove('currentUser')
         Router.pathname.indexOf('/login') !== 0 && Router.replace('/login')
     }
 }

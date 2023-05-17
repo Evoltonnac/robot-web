@@ -9,5 +9,5 @@ export interface DBRequest extends NextApiRequest {
 }
 export async function dbMiddleware(req: DBRequest, res: NextApiResponse, next: NextHandler) {
     req.mongoose = await dbConnect()
-    return next()
+    await next()
 }

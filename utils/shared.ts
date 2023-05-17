@@ -5,7 +5,7 @@ export const DECODER = new TextDecoder()
 import jsCookie from 'js-cookie'
 import { getCookie } from 'cookies-next'
 import { GetServerSidePropsContext } from 'next'
-export const clientCookies = jsCookie
+export const clientCookie = jsCookie
 export class SharedCookie {
     private req?: GetServerSidePropsContext['req']
     private res?: GetServerSidePropsContext['res']

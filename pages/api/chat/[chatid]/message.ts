@@ -1,10 +1,12 @@
 import type { NextApiResponse } from 'next'
-import { createRouter } from 'next-connect'
+import { createCustomRouter } from '@/services/middlewares/error'
 import { pushMessages, updataMessage } from '@/services/chat'
 import { dbMiddleware } from '@/services/middlewares/db'
 import { AuthRequest, authMiddleware } from '@/services/middlewares/auth'
+import { ErrorData } from '@/types/server/common'
+import Boom from '@hapi/boom'
 
-const router = createRouter<AuthRequest, NextApiResponse>()
+const router = createCustomRouter<AuthRequest, NextApiResponse>()
 
 router
     .use(dbMiddleware)
@@ -15,23 +17,19 @@ router
         const { role, type, content } = message
         const { _id } = req.currentUser
         if (!chatid) {
-            res.status(404)
-            res.end()
-            return
+            throw Boom.notFound<ErrorData>('no chatid', {
+                errno: 'A0401',
+                errmsg: '聊天内容不存在',
+            })
         }
         if (messageId) {
             await updataMessage(_id, chatid.toString(), messageId.toString(), { role, type, content })
-            res.status(200)
+            res.status(200).json('success')
             res.end()
             return
         } else {
-            const chatData = await pushMessages(_id, chatid.toString(), [{ role, type, content }])
-            if (!chatData) {
-                res.status(500)
-                res.end()
-                return
-            }
-            res.status(200).json({ data: chatData })
+            const chatData = (await pushMessages(_id, chatid.toString(), [{ role, type, content }])).toObject()
+            res.status(200).json(chatData)
             res.end()
             return
         }
