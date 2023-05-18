@@ -49,6 +49,7 @@ router.post(async (req) => {
 
     let finalContent = ''
     let storePromise: Promise<Chat | null> | undefined
+    let isStreamClose = false
 
     // return a promise to store message
     // in edge functions, store fetch will be aborted if close stream immediately after fetch
@@ -77,7 +78,7 @@ router.post(async (req) => {
                      */
                     if (data === '[DONE]') {
                         await storeFinalContent()
-                        controller.close()
+                        !isStreamClose && (isStreamClose = true) && controller.close()
                         return
                     }
                     try {
@@ -110,7 +111,7 @@ router.post(async (req) => {
                                 }
                                 if (choice?.finish_reason === 'length') {
                                     await storeFinalContent()
-                                    controller.close()
+                                    !isStreamClose && (isStreamClose = true) && controller.close()
                                 }
                             }
                         }
