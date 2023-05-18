@@ -3,7 +3,7 @@ import { Message } from '@/types/model/chat'
 import { ErrorData } from '@/types/server/common'
 import Boom from '@hapi/boom'
 import { Types } from 'mongoose'
-import { tryOrBoom } from './middlewares/error'
+import { tryOrBoom } from './middlewares/customRouter'
 import { ChatListItem } from '@/types/view/chat'
 
 const getChatById = tryOrBoom(

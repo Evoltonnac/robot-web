@@ -1,5 +1,5 @@
 import type { NextApiResponse } from 'next'
-import { createCustomRouter } from '@/services/middlewares/error'
+import { createCustomRouter } from '@/services/middlewares/customRouter'
 import { addChat, getChatList } from '@/services/chat'
 import { dbMiddleware } from '@/services/middlewares/db'
 import { AuthRequest, authMiddleware } from '@/services/middlewares/auth'
@@ -12,7 +12,7 @@ router
     .get(async (req, res) => {
         const { _id } = req.currentUser
         const chatList = await getChatList(_id)
-        res.status(200).json(chatList)
+        res.status(200).json({ chatList })
         res.end()
     })
     .post(async (req, res) => {

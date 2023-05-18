@@ -59,6 +59,8 @@ interface ChatListProps {
         addChat: () => Promise<Chat>
         deleteChat: (id: string) => Promise<Chat | undefined>
     }
+    onAttachChat?: (id: string) => void
+    onDestroyChat?: (id: string) => void
 }
 
 export const ChatList: React.FC<ChatListProps> = ({ list, actions }) => {

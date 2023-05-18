@@ -11,10 +11,10 @@ type ChatListPageProps = {
 
 export const getServerSideProps: GetServerSideProps<ChatListPageProps> = async (ctx) => {
     try {
-        const data = await commonRequest(ctx).get<ChatListItem[]>('/api/chat')
+        const data = await commonRequest(ctx).get<ChatListPageProps>('/api/chat')
         return {
             props: {
-                chatList: data || [],
+                chatList: data.chatList || [],
             },
         }
     } catch (error: any) {

@@ -1,5 +1,5 @@
 import type { NextApiResponse } from 'next'
-import { createCustomRouter } from '@/services/middlewares/error'
+import { createCustomRouter } from '@/services/middlewares/customRouter'
 import { DBRequest, dbMiddleware } from '@/services/middlewares/db'
 import { generateJWT } from '@/services/middlewares/auth'
 import { formatUserInfo, getUserByName } from '@/services/user'

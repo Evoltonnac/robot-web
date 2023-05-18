@@ -1,5 +1,5 @@
 import type { NextApiResponse } from 'next'
-import { createCustomRouter } from '@/services/middlewares/error'
+import { createCustomRouter } from '@/services/middlewares/customRouter'
 import { pushMessages, updataMessage } from '@/services/chat'
 import { dbMiddleware } from '@/services/middlewares/db'
 import { AuthRequest, authMiddleware } from '@/services/middlewares/auth'
