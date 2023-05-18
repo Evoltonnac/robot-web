@@ -1,5 +1,5 @@
 import Head from 'next/head'
-import ChatBot from '@/components/ChatBot'
+import ChatBot from '@/components/ChatBox'
 import { useRouter } from 'next/router'
 
 export default function ChatById() {
