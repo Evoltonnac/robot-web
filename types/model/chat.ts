@@ -2,6 +2,7 @@ import { Types } from 'mongoose'
 
 export interface Chat {
     messages: Message[]
+    preset: Types.ObjectId
     user: Types.ObjectId
 }
 

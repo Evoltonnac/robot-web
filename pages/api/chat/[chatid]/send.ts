@@ -7,13 +7,21 @@ import { getOpenai } from '@/utils/openai'
 import { ChatCompletionRequestMessage } from '@/lib/openai-edge/types/chat'
 import { errorHandlerEdge } from '@/services/middlewares/edge'
 
-const pushMessage = async (req: NextRequest, chatId: string, message: Message, messageId?: string): Promise<Chat> => {
+interface pushMessageOptions {
+    chatId: string
+    message: Message
+    messageId?: string
+    needConfig?: boolean
+}
+const pushMessage = async (req: NextRequest, opt: pushMessageOptions): Promise<Chat> => {
+    const { chatId, message, messageId, needConfig } = opt || {}
     const authorization = req.headers.get('authorization') || ''
     const response = await fetch(`${req.nextUrl.origin}/api/chat/${chatId}/message`, {
         method: 'POST',
         body: JSON.stringify({
             message,
             ...(messageId && { messageId }),
+            needConfig: +!!needConfig,
         }),
         headers: {
             authorization,
@@ -27,13 +35,13 @@ const pushMessage = async (req: NextRequest, chatId: string, message: Message, m
 const router = createEdgeRouter<NextRequest, NextFetchEvent>()
 
 router.post(async (req) => {
-    const chatid = req.nextUrl.searchParams.get('chatid')
+    const chatId = req.nextUrl.searchParams.get('chatid')
     const message = (await req.json()).message
     const { role, type, content } = message
-    if (!chatid) {
+    if (!chatId) {
         throw new Error(JSON.stringify({ errno: 'A0401', errmsg: '聊天内容不存在', status: 404 }))
     }
-    const chatData = await pushMessage(req, chatid, { role, type, content })
+    const chatData = await pushMessage(req, { chatId, message: { role, type, content }, needConfig: true })
     // return NextResponse.json(chatData)
     if (!chatData) {
         throw new Error(JSON.stringify({ errno: 'A0404', errmsg: '发送消息失败' }))
@@ -42,7 +50,7 @@ router.post(async (req) => {
     const response = await getOpenai().createChatCompletion({
         model: 'gpt-3.5-turbo',
         messages: messageList,
-        max_tokens: 100,
+        max_tokens: 200,
         temperature: 0,
         stream: true,
     })
@@ -61,10 +69,13 @@ router.post(async (req) => {
         if (storePromise) {
             return storePromise
         }
-        return (storePromise = pushMessage(req, chatid, {
-            role: 'assistant',
-            content: finalContent,
-            type: MessageType.TEXT,
+        return (storePromise = pushMessage(req, {
+            chatId,
+            message: {
+                role: 'assistant',
+                content: finalContent,
+                type: MessageType.TEXT,
+            },
         }))
     }
 

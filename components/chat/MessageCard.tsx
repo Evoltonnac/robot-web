@@ -7,7 +7,7 @@ import Markdown, { MarkdownToJSX } from 'markdown-to-jsx'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { useTheme } from '@mui/material/styles'
 import { materialDark, materialLight } from 'react-syntax-highlighter/dist/cjs/styles/prism'
-import { useUser } from './global/User'
+import { useUser } from '../global/User'
 
 const PreBlock: MarkdownToJSX.Override = ({ children }) => {
     const { palette } = useTheme()

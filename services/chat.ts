@@ -60,10 +60,16 @@ const deleteChatById = tryOrBoom(
 // clear all messages of a chat
 const clearChatById = tryOrBoom(
     async (userId: Types.ObjectId, chatId: string) => {
-        const chat = await getChatById(userId, chatId)
-        chat.messages = []
-        await chat.save()
-        return chat
+        await Chat.updateOne(
+            {
+                user: userId,
+                _id: chatId,
+            },
+            {
+                $set: { messages: [] },
+            }
+        )
+        return
     },
     {
         errno: 'B0402',

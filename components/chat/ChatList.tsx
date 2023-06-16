@@ -11,18 +11,19 @@ export const useChatList = (chatList: ChatListItem[]) => {
     const [list, setList] = useState<ChatListItem[]>(chatList)
     const addChat = () => {
         return clientRequest.post<Chat>('/api/chat').then((data) => {
-            setList(
-                list.concat([
-                    {
-                        ...data,
-                        messagesInfo: {
-                            total: 0,
-                            first: '',
-                        },
-                    },
-                ])
-            )
-            return data
+            const chatItem: ChatListItem = {
+                ...data,
+                messagesInfo: {
+                    total: 0,
+                    first: '',
+                },
+                presetInfo: {
+                    avatar: '',
+                    title: '',
+                },
+            }
+            setList(list.concat([chatItem]))
+            return chatItem
         })
     }
     const deleteChat = (id: string) => {
@@ -56,8 +57,8 @@ const useStyles = makeStyles()((theme) => ({
 interface ChatListProps {
     list: ChatListItem[]
     actions: {
-        addChat: () => Promise<Chat>
-        deleteChat: (id: string) => Promise<Chat | undefined>
+        addChat: () => Promise<ChatListItem>
+        deleteChat: (id: string) => Promise<ChatListItem>
     }
     onAttachChat?: (id: string) => void
     onDestroyChat?: (id: string) => void
