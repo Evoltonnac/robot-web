@@ -11,6 +11,7 @@ import { createRouter } from 'next-connect'
  * 02登录
  * 03聊天列表
  * 04聊天交互
+ * 05预设
  * 4-5位：从01自增
  */
 
@@ -43,6 +44,12 @@ export function createCustomRouter<T extends NextApiRequest, P extends NextApiRe
     router.use((req, res: NextApiResponse, next) => {
         const json = res.json.bind(res)
         res.json = (data) => {
+            if (Object.prototype.toString.call(data) !== '[object Object]') {
+                return json({
+                    errno: '00000',
+                    data,
+                })
+            }
             const { errno, errmsg, ...rest } = data
             json({
                 errmsg,
