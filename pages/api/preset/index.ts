@@ -1,6 +1,6 @@
 import type { NextApiResponse } from 'next'
 import { createCustomRouter } from '@/services/middlewares/customRouter'
-import { addChat, getChatList } from '@/services/chat'
+import { addPreset, getPresetList } from '@/services/preset'
 import { dbMiddleware } from '@/services/middlewares/db'
 import { AuthRequest, authMiddleware } from '@/services/middlewares/auth'
 
@@ -11,15 +11,15 @@ router
     .use(authMiddleware)
     .get(async (req, res) => {
         const { _id } = req.currentUser
-        const chatList = await getChatList(_id)
-        res.status(200).json({ chatList })
+        const presetList = await getPresetList(_id)
+        res.status(200).json({ presetList })
         res.end()
     })
     .post(async (req, res) => {
         const { _id } = req.currentUser
-        const { presetId } = req.body
-        const newChat = (await addChat(_id, presetId)).toObject()
-        res.status(200).json(newChat)
+        const { avatar, title, prompt } = req.body
+        const newPreset = (await addPreset(_id, { avatar, title, prompt })).toObject()
+        res.status(200).json(newPreset)
         res.end()
     })
 

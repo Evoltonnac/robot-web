@@ -2,7 +2,7 @@ import type { NextApiResponse } from 'next'
 import { deleteChatById, getChatById } from '@/services/chat'
 import { dbMiddleware } from '@/services/middlewares/db'
 import { AuthRequest, authMiddleware } from '@/services/middlewares/auth'
-import { createCustomRouter } from '@/services/middlewares/error'
+import { createCustomRouter } from '@/services/middlewares/customRouter'
 import { ErrorData } from '@/types/server/common'
 import Boom from '@hapi/boom'
 

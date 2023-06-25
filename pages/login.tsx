@@ -1,6 +1,6 @@
 import Head from 'next/head'
 import Router from 'next/router'
-import Login from '@/components/Login'
+import Login from '@/components/user/Login'
 import { useUser } from '@/components/global/User'
 import { useState } from 'react'
 import SwapHoriz from '@mui/icons-material/SwapHoriz'

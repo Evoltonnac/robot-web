@@ -1,19 +1,27 @@
 import { createEdgeRouter } from 'next-connect'
 import { DECODER, ENCODER } from '@/utils/shared'
-import { Chat, Message, MessageType } from '@/types/model/chat'
+import { ChatWithConfig, Message, MessageType } from '@/types/model/chat'
 import { createParser, ParsedEvent, ReconnectInterval } from 'eventsource-parser'
 import { NextFetchEvent, NextRequest } from 'next/server'
 import { getOpenai } from '@/utils/openai'
 import { ChatCompletionRequestMessage } from '@/lib/openai-edge/types/chat'
 import { errorHandlerEdge } from '@/services/middlewares/edge'
 
-const pushMessage = async (req: NextRequest, chatId: string, message: Message, messageId?: string): Promise<Chat> => {
+interface pushMessageOptions {
+    chatId: string
+    message: Message
+    messageId?: string
+    needConfig?: boolean
+}
+const pushMessage = async (req: NextRequest, opt: pushMessageOptions): Promise<ChatWithConfig> => {
+    const { chatId, message, messageId, needConfig } = opt || {}
     const authorization = req.headers.get('authorization') || ''
     const response = await fetch(`${req.nextUrl.origin}/api/chat/${chatId}/message`, {
         method: 'POST',
         body: JSON.stringify({
             message,
             ...(messageId && { messageId }),
+            needConfig: +!!needConfig,
         }),
         headers: {
             authorization,
@@ -27,28 +35,30 @@ const pushMessage = async (req: NextRequest, chatId: string, message: Message, m
 const router = createEdgeRouter<NextRequest, NextFetchEvent>()
 
 router.post(async (req) => {
-    const chatid = req.nextUrl.searchParams.get('chatid')
+    const chatId = req.nextUrl.searchParams.get('chatid')
     const message = (await req.json()).message
     const { role, type, content } = message
-    if (!chatid) {
+    if (!chatId) {
         throw new Error(JSON.stringify({ errno: 'A0401', errmsg: '聊天内容不存在', status: 404 }))
     }
-    const chatData = await pushMessage(req, chatid, { role, type, content })
+    const chatData = await pushMessage(req, { chatId, message: { role, type, content }, needConfig: true })
     // return NextResponse.json(chatData)
     if (!chatData) {
         throw new Error(JSON.stringify({ errno: 'A0404', errmsg: '发送消息失败' }))
     }
     const messageList = chatData.messages.map(({ content, role }) => ({ content, role })) as ChatCompletionRequestMessage[]
+    chatData.preset?.prompt && messageList.unshift({ content: chatData.preset.prompt, role: 'system' })
     const response = await getOpenai().createChatCompletion({
         model: 'gpt-3.5-turbo',
         messages: messageList,
-        max_tokens: 100,
+        max_tokens: 200,
         temperature: 0,
         stream: true,
     })
 
     let finalContent = ''
-    let storePromise: Promise<Chat | null> | undefined
+    let storePromise: Promise<ChatWithConfig | null> | undefined
+    let isStreamClose = false
 
     // return a promise to store message
     // in edge functions, store fetch will be aborted if close stream immediately after fetch
@@ -60,10 +70,13 @@ router.post(async (req) => {
         if (storePromise) {
             return storePromise
         }
-        return (storePromise = pushMessage(req, chatid, {
-            role: 'assistant',
-            content: finalContent,
-            type: MessageType.TEXT,
+        return (storePromise = pushMessage(req, {
+            chatId,
+            message: {
+                role: 'assistant',
+                content: finalContent,
+                type: MessageType.TEXT,
+            },
         }))
     }
 
@@ -77,7 +90,7 @@ router.post(async (req) => {
                      */
                     if (data === '[DONE]') {
                         await storeFinalContent()
-                        controller.close()
+                        !isStreamClose && (isStreamClose = true) && controller.close()
                         return
                     }
                     try {
@@ -110,7 +123,7 @@ router.post(async (req) => {
                                 }
                                 if (choice?.finish_reason === 'length') {
                                     await storeFinalContent()
-                                    controller.close()
+                                    !isStreamClose && (isStreamClose = true) && controller.close()
                                 }
                             }
                         }
