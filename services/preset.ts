@@ -71,14 +71,9 @@ const updatePresetById = tryOrBoom(
 // get preset list of a user
 const getPresetList = tryOrBoom(
     async (userId: Types.ObjectId) => {
-        const presets = await Preset.find(
-            {
-                user: userId,
-            },
-            {
-                prompt: 0,
-            }
-        )
+        const presets = await Preset.find({
+            user: userId,
+        })
         return presets
     },
     {

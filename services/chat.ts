@@ -5,10 +5,11 @@ import Boom from '@hapi/boom'
 import { Types } from 'mongoose'
 import { tryOrBoom } from './middlewares/customRouter'
 import { ChatListItem } from '@/types/view/chat'
+import Preset from '@/models/preset'
 
 const getChatById = tryOrBoom(
     async (userId: Types.ObjectId, chatId: string) => {
-        const chat = await Chat.findById(chatId)
+        const chat = await Chat.findById(chatId).populate('preset')
         if (!chat) {
             throw Boom.notFound<ErrorData>('', {
                 errno: 'A0402',
@@ -31,12 +32,16 @@ const getChatById = tryOrBoom(
 
 // add new chat and return the new chat object
 const addChat = tryOrBoom(
-    async (userId: Types.ObjectId) => {
+    async (userId: Types.ObjectId, presetId: string) => {
         const newChat = new Chat({
             user: userId,
             messages: [],
+            ...(presetId && {
+                preset: presetId,
+            }),
         })
         newChat.save()
+        await newChat.populate('preset')
         return newChat
     },
     {
@@ -141,6 +146,7 @@ const getChatList = tryOrBoom(
                 },
             },
         ])
+        await Preset.populate(chats, { path: 'preset' })
         return chats
     },
     {

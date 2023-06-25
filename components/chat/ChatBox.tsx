@@ -123,10 +123,14 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
             return
         }
         isSubmitting.current = true
-        clientRequest.post(`/api/chat/${chatid}/clear`).then(() => {
-            setMessageList([])
-            isSubmitting.current = false
-        })
+        clientRequest
+            .post(`/api/chat/${chatid}/clear`)
+            .then(() => {
+                setMessageList([])
+            })
+            .finally(() => {
+                isSubmitting.current = false
+            })
     }
     const handleAbort = () => {
         sendCtrl.current?.abort()

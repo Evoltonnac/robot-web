@@ -17,7 +17,8 @@ router
     })
     .post(async (req, res) => {
         const { _id } = req.currentUser
-        const newChat = (await addChat(_id)).toObject()
+        const { presetId } = req.body
+        const newChat = (await addChat(_id, presetId)).toObject()
         res.status(200).json(newChat)
         res.end()
     })

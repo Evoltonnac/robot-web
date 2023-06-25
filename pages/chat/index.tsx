@@ -2,7 +2,7 @@ import { ChatList, useChatList } from '@/components/chat/ChatList'
 import { PresetList, usePresetList } from '@/components/preset/PresetList'
 import { commonRequest } from '@/src/utils/request'
 import { ChatListItem } from '@/types/view/chat'
-import { PresetListItem } from '@/types/view/preset'
+import { Preset } from '@/types/view/preset'
 import { Box, Container } from '@mui/material'
 import Head from 'next/head'
 import { GetServerSideProps, InferGetServerSidePropsType, NextPage } from 'next/types'
@@ -12,7 +12,7 @@ type ChatListResponse = {
     chatList: ChatListItem[]
 }
 type PresetListResponse = {
-    presetList: PresetListItem[]
+    presetList: Preset[]
 }
 type ChatListPageProps = ChatListResponse & PresetListResponse
 
@@ -64,7 +64,7 @@ const Chat: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
             <Container className={classes.pageContainer}>
                 <ChatList list={cList} actions={cActions}></ChatList>
                 <Box className={classes.presetContainer}>
-                    <PresetList list={pList} actions={pActions}></PresetList>
+                    <PresetList list={pList} actions={{ ...pActions, addChat: cActions.addChat }}></PresetList>
                 </Box>
             </Container>
         </>

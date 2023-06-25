@@ -20,8 +20,8 @@ router
                 errmsg: '聊天内容不存在',
             })
         }
-        const chatData = (await clearChatById(_id, chatid.toString())).toObject()
-        res.status(200).json(chatData)
+        await clearChatById(_id, chatid.toString())
+        res.status(200).json('success')
         res.end()
     })
 

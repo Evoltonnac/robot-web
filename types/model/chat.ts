@@ -1,8 +1,15 @@
 import { Types } from 'mongoose'
+import { Preset } from './preset'
 
 export interface Chat {
     messages: Message[]
     preset: Types.ObjectId
+    user: Types.ObjectId
+}
+
+export interface ChatWithConfig {
+    messages: Message[]
+    preset?: Preset
     user: Types.ObjectId
 }
 

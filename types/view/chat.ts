@@ -2,8 +2,9 @@ import * as ChatModel from '../model/chat'
 import { Preset } from '../model/preset'
 import { withId } from './common'
 
-export type Chat = withId<ChatModel.Chat> & {
+export type Chat = withId<Omit<ChatModel.Chat, 'preset'>> & {
     messages: Message[]
+    preset?: Preset
 }
 
 export type ChatListItem = Chat & {
@@ -11,7 +12,7 @@ export type ChatListItem = Chat & {
         total: number
         first: string
     }
-    presetInfo: Pick<Preset, 'title' | 'avatar'>
+    preset?: Preset
 }
 
 export type Message = withId<ChatModel.Message>

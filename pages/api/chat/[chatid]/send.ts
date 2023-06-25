@@ -1,6 +1,6 @@
 import { createEdgeRouter } from 'next-connect'
 import { DECODER, ENCODER } from '@/utils/shared'
-import { Chat, Message, MessageType } from '@/types/model/chat'
+import { ChatWithConfig, Message, MessageType } from '@/types/model/chat'
 import { createParser, ParsedEvent, ReconnectInterval } from 'eventsource-parser'
 import { NextFetchEvent, NextRequest } from 'next/server'
 import { getOpenai } from '@/utils/openai'
@@ -13,7 +13,7 @@ interface pushMessageOptions {
     messageId?: string
     needConfig?: boolean
 }
-const pushMessage = async (req: NextRequest, opt: pushMessageOptions): Promise<Chat> => {
+const pushMessage = async (req: NextRequest, opt: pushMessageOptions): Promise<ChatWithConfig> => {
     const { chatId, message, messageId, needConfig } = opt || {}
     const authorization = req.headers.get('authorization') || ''
     const response = await fetch(`${req.nextUrl.origin}/api/chat/${chatId}/message`, {
@@ -47,6 +47,7 @@ router.post(async (req) => {
         throw new Error(JSON.stringify({ errno: 'A0404', errmsg: '发送消息失败' }))
     }
     const messageList = chatData.messages.map(({ content, role }) => ({ content, role })) as ChatCompletionRequestMessage[]
+    chatData.preset?.prompt && messageList.unshift({ content: chatData.preset.prompt, role: 'system' })
     const response = await getOpenai().createChatCompletion({
         model: 'gpt-3.5-turbo',
         messages: messageList,
@@ -56,7 +57,7 @@ router.post(async (req) => {
     })
 
     let finalContent = ''
-    let storePromise: Promise<Chat | null> | undefined
+    let storePromise: Promise<ChatWithConfig | null> | undefined
     let isStreamClose = false
 
     // return a promise to store message
