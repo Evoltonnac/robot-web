@@ -3,7 +3,7 @@ import { getAuthorizationHeader, logOut } from './auth'
 import { SendNotification } from '@/src/hooks/useNotification'
 import { GetServerSidePropsContext } from 'next'
 
-const dev = process.env.NODE_ENV !== 'production'
+const DOMAIN = process.env.DOMAIN
 
 interface EnhancedAxiosRequestConfig extends InternalAxiosRequestConfig {
     nextCtx?: GetServerSidePropsContext // res object at serverside in nextjs
@@ -65,7 +65,7 @@ const sharedRequest = (options?: CreateAxiosDefaults) => {
 // axios instance at server side
 export const serverRequest = (nextCtx?: GetServerSidePropsContext) => {
     const axiosInstance = sharedRequest({
-        baseURL: dev ? 'http://robot-web.com:3000' : 'https://robot-web-evoltonnac.vercel.app',
+        baseURL: DOMAIN ? `https://${DOMAIN}` : 'http://robot-web.com:3000',
     })
     // add custom ctx to axios request config
     nextCtx &&
