@@ -65,8 +65,8 @@ const useStyles = makeStyles()((theme) => {
             alignItems: 'center',
             marginTop: theme.spacing(1),
         },
-        chatItemBadge: {
-            marginLeft: theme.spacing(2),
+        chatItemTotal: {
+            marginRight: theme.spacing(2),
         },
     }
 })
@@ -109,20 +109,17 @@ export const ChatList: React.FC<ChatListProps> = ({ list, actions }) => {
         }
     }
 
-    const ChatItemSecondary = ({ chatItem }: { chatItem: ChatListItem }) => (
-        <Box className={classes.chatItemSecondary}>
-            {chatItem.messagesInfo.total ? `共${chatItem.messagesInfo.total}条` : null}
-            {chatItem.preset?.title ? (
-                <Chip
-                    className={classes.chatItemBadge}
-                    color="primary"
-                    size="small"
-                    label={chatItem.preset.title}
-                    icon={<BookmarkBorder />}
-                ></Chip>
-            ) : null}
-        </Box>
-    )
+    const ChatItemSecondary = ({ chatItem }: { chatItem: ChatListItem }) => {
+        const total = chatItem.messagesInfo.total
+        const presetTitle = chatItem.preset?.title
+        const isShow = total || presetTitle
+        return isShow ? (
+            <Box className={classes.chatItemSecondary}>
+                {total ? <span className={classes.chatItemTotal}>共{total}条</span> : null}
+                {presetTitle ? <Chip color="primary" size="small" label={presetTitle} icon={<BookmarkBorder />}></Chip> : null}
+            </Box>
+        ) : null
+    }
 
     return (
         <>

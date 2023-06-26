@@ -10,7 +10,7 @@ import TitleOutlined from '@mui/icons-material/TitleOutlined'
 
 const schema = yup.object().shape({
     title: yup.string().max(8, '预设名太长').required('预设名不能为空'),
-    prompt: yup.string().max(200, '提示词太长').required('提示词不能为空'),
+    prompt: yup.string().max(1000, '提示词太长').required('提示词不能为空'),
 })
 
 const useStyles = makeStyles<{ fullScreen: boolean }>()((theme, { fullScreen }) => ({
