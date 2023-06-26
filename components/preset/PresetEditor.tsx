@@ -1,11 +1,12 @@
 import { Preset } from '@/types/view/preset'
-import { DescriptionOutlined, TitleOutlined } from '@mui/icons-material'
 import { Dialog, Grid, Button, TextField, useMediaQuery, useTheme, Box, Typography } from '@mui/material'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { makeStyles } from 'tss-react/mui'
+import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined'
+import TitleOutlined from '@mui/icons-material/TitleOutlined'
 
 const schema = yup.object().shape({
     title: yup.string().max(8, '预设名太长').required('预设名不能为空'),
