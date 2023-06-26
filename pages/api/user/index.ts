@@ -4,8 +4,7 @@ import { DBRequest, dbMiddleware } from '@/services/middlewares/db'
 import { AuthRequest, authMiddleware, generateJWT } from '@/services/middlewares/auth'
 import { addUser, formatUserInfo } from '@/services/user'
 import { setCookie } from '@/utils/common'
-
-const { DOMAIN = 'robot-web-evoltonnac.vercel.app' } = process.env
+import { HOSTNAME } from '@/utils/constant'
 
 const router = createCustomRouter<AuthRequest, NextApiResponse>()
 
@@ -20,7 +19,7 @@ router
         const { username, password } = req.body
         const newUser = (await addUser(username, password)).toObject()
         const accessToken = generateJWT(newUser)
-        setCookie(res, 'AccessToken', accessToken, { domain: DOMAIN, path: '/' })
+        setCookie(res, 'AccessToken', accessToken, { domain: HOSTNAME, path: '/' })
         res.status(200).json(formatUserInfo(newUser))
         res.end()
     })

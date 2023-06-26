@@ -37,7 +37,6 @@
     "react-hook-form": "^7.45.0",
     "react-syntax-highlighter": "^15.5.0",
     "sass": "^1.60.0",
-    "socks-proxy-agent": "^7.0.0",
     "tss-react": "^4.8.2",
     "yup": "^1.2.0"
   },
