@@ -60,8 +60,13 @@ const useStyles = makeStyles()((theme) => {
             backgroundColor: 'transparent',
             color: theme.palette.primary.main,
         },
-        chatItemBadges: {
+        chatItemSecondary: {
+            display: 'flex',
+            alignItems: 'center',
             marginTop: theme.spacing(1),
+        },
+        chatItemBadge: {
+            marginLeft: theme.spacing(2),
         },
     }
 })
@@ -105,13 +110,17 @@ export const ChatList: React.FC<ChatListProps> = ({ list, actions }) => {
     }
 
     const ChatItemSecondary = ({ chatItem }: { chatItem: ChatListItem }) => (
-        <Box>
+        <Box className={classes.chatItemSecondary}>
             {chatItem.messagesInfo.total ? `共${chatItem.messagesInfo.total}条` : null}
-            <Box className={classes.chatItemBadges}>
-                {chatItem.preset?.title ? (
-                    <Chip color="primary" size="small" label={chatItem.preset.title} icon={<BookmarkBorder />}></Chip>
-                ) : null}
-            </Box>
+            {chatItem.preset?.title ? (
+                <Chip
+                    className={classes.chatItemBadge}
+                    color="primary"
+                    size="small"
+                    label={chatItem.preset.title}
+                    icon={<BookmarkBorder />}
+                ></Chip>
+            ) : null}
         </Box>
     )
 
@@ -135,6 +144,9 @@ export const ChatList: React.FC<ChatListProps> = ({ list, actions }) => {
                                 noWrap: true,
                             }}
                             secondary={<ChatItemSecondary chatItem={item} />}
+                            secondaryTypographyProps={{
+                                component: 'div',
+                            }}
                         />
 
                         <ListItemSecondaryAction>
