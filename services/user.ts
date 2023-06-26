@@ -4,7 +4,7 @@ import { Types } from 'mongoose'
 import _ from 'lodash'
 import Boom from '@hapi/boom'
 import { ErrorData } from '@/types/server/common'
-import { tryOrBoom } from './middlewares/error'
+import { tryOrBoom } from './middlewares/customRouter'
 
 const getUserByName = tryOrBoom(
     async (username: string) => {

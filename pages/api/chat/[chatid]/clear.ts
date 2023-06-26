@@ -2,7 +2,7 @@ import type { NextApiResponse } from 'next'
 import { clearChatById } from '@/services/chat'
 import { dbMiddleware } from '@/services/middlewares/db'
 import { AuthRequest, authMiddleware } from '@/services/middlewares/auth'
-import { createCustomRouter } from '@/services/middlewares/error'
+import { createCustomRouter } from '@/services/middlewares/customRouter'
 import Boom from '@hapi/boom'
 import { ErrorData } from '@/types/server/common'
 
@@ -20,8 +20,8 @@ router
                 errmsg: '聊天内容不存在',
             })
         }
-        const chatData = (await clearChatById(_id, chatid.toString())).toObject()
-        res.status(200).json(chatData)
+        await clearChatById(_id, chatid.toString())
+        res.status(200).json('success')
         res.end()
     })
 

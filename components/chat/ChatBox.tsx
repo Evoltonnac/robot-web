@@ -26,7 +26,7 @@ const useStyles = makeStyles()((theme) => ({
     },
 }))
 
-const ChatBot = ({ chatid }: { chatid: string }) => {
+const ChatBot = ({ chatid }: { chatid?: string }) => {
     // TODO: refactor styles
     const { classes } = useStyles()
     const elContainer = useRef<HTMLDivElement>(null)
@@ -123,10 +123,14 @@ const ChatBot = ({ chatid }: { chatid: string }) => {
             return
         }
         isSubmitting.current = true
-        clientRequest.post(`/api/chat/${chatid}/clear`).then(() => {
-            setMessageList([])
-            isSubmitting.current = false
-        })
+        clientRequest
+            .post(`/api/chat/${chatid}/clear`)
+            .then(() => {
+                setMessageList([])
+            })
+            .finally(() => {
+                isSubmitting.current = false
+            })
     }
     const handleAbort = () => {
         sendCtrl.current?.abort()
@@ -145,14 +149,15 @@ const ChatBot = ({ chatid }: { chatid: string }) => {
     }, [messageList])
 
     useEffect(() => {
-        clientRequest.get<Chat>(`/api/chat/${chatid}`).then((data) => {
-            if (data?.messages?.length) {
-                setMessageList(data?.messages)
-            }
-        })
+        chatid &&
+            clientRequest.get<Chat>(`/api/chat/${chatid}`).then((data) => {
+                if (data?.messages?.length) {
+                    setMessageList(data?.messages)
+                }
+            })
         // abort send event stream when unmounted
         return handleAbort
-    }, [])
+    }, [chatid])
 
     // abort send event stream when close
     window.addEventListener('beforeunload', handleAbort)
@@ -165,43 +170,47 @@ const ChatBot = ({ chatid }: { chatid: string }) => {
                 overflow: 'scroll',
             }}
         >
-            <Box pt={5} pb={20} px={2}>
-                {messageList.map((item, index) => (
-                    <MessageCard key={index} message={item}></MessageCard>
-                ))}
-                {messageList.length ? (
-                    <Box textAlign="center">
-                        {isLoading ? null : (
-                            // <Button onClick={handleAbort} color="error">
-                            //     停止响应
-                            // </Button>
-                            <Button onClick={handleClear} color="error" endIcon={<DeleteOutlineRounded />}>
-                                清空此对话
-                            </Button>
-                        )}
+            {chatid ? (
+                <>
+                    <Box pt={5} pb={20} px={2}>
+                        {messageList.map((item, index) => (
+                            <MessageCard key={index} message={item}></MessageCard>
+                        ))}
+                        {messageList.length ? (
+                            <Box textAlign="center">
+                                {isLoading ? null : (
+                                    // <Button onClick={handleAbort} color="error">
+                                    //     停止响应
+                                    // </Button>
+                                    <Button onClick={handleClear} color="error" endIcon={<DeleteOutlineRounded />}>
+                                        清空此对话
+                                    </Button>
+                                )}
+                            </Box>
+                        ) : null}
                     </Box>
-                ) : null}
-            </Box>
-            <Box position="fixed" left={0} bottom={0} width="100%" px={2} pb={2} bgcolor="background.default">
-                <Box className={classes.footerCard}>
-                    <Grid container spacing={2}>
-                        <Grid item xs>
-                            <OutlinedInput size="small" value={inputValue} fullWidth onChange={handleInputChange}></OutlinedInput>
-                        </Grid>
-                        <Grid item width={100} alignSelf="stretch">
-                            <Button
-                                className={classes.sendButton}
-                                variant="contained"
-                                fullWidth
-                                onClick={handleSend}
-                                disabled={isLoading || !inputValue}
-                            >
-                                <SendIcon />
-                            </Button>
-                        </Grid>
-                    </Grid>
-                </Box>
-            </Box>
+                    <Box position="fixed" left={0} bottom={0} width="100%" px={2} pb={2} bgcolor="background.default">
+                        <Box className={classes.footerCard}>
+                            <Grid container spacing={2}>
+                                <Grid item xs>
+                                    <OutlinedInput size="small" value={inputValue} fullWidth onChange={handleInputChange}></OutlinedInput>
+                                </Grid>
+                                <Grid item width={100} alignSelf="stretch">
+                                    <Button
+                                        className={classes.sendButton}
+                                        variant="contained"
+                                        fullWidth
+                                        onClick={handleSend}
+                                        disabled={isLoading || !inputValue}
+                                    >
+                                        <SendIcon />
+                                    </Button>
+                                </Grid>
+                            </Grid>
+                        </Box>
+                    </Box>
+                </>
+            ) : null}
         </Box>
     )
 }

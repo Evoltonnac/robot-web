@@ -7,6 +7,7 @@ import Markdown, { MarkdownToJSX } from 'markdown-to-jsx'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { useTheme } from '@mui/material/styles'
 import { materialDark, materialLight } from 'react-syntax-highlighter/dist/cjs/styles/prism'
+import { useUser } from '../global/User'
 
 const PreBlock: MarkdownToJSX.Override = ({ children }) => {
     const { palette } = useTheme()
@@ -49,6 +50,7 @@ const useStyles = makeStyles<MessageCardProps>()((theme, { message }) => {
 })
 
 const MessageCard: React.FC<MessageCardProps> = (props) => {
+    const user = useUser()
     const { message } = props
     const { role } = message
     const { classes } = useStyles(props)
@@ -57,7 +59,11 @@ const MessageCard: React.FC<MessageCardProps> = (props) => {
     return (
         <Grid container width="90%" ml={isUser ? 0 : 'auto'} flexDirection={isUser ? 'row' : 'row-reverse'} flexWrap="nowrap" mb={2}>
             <Grid item flexShrink={0}>
-                <Avatar className={classes.avatar}>{isUser ? '朕' : <PersonIcon />}</Avatar>
+                {isUser ? (
+                    <Avatar className={classes.avatar} alt={user?.username.toUpperCase() || ''} src="broken.img" />
+                ) : (
+                    <Avatar className={classes.avatar} />
+                )}
             </Grid>
             <Grid item flex="1" overflow="hidden" px={2} pb={1}>
                 <Paper className={classes.content} elevation={0}>

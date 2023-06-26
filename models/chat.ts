@@ -25,6 +25,11 @@ const ChatSchema = new Schema({
         ref: 'User',
         required: true,
     },
+    preset: {
+        type: Schema.Types.ObjectId,
+        ref: 'Preset',
+        required: false,
+    },
     messages: {
         type: [MessageSchema],
         required: true,
