@@ -32,6 +32,7 @@
     "next": "13.4.8-canary.0",
     "next-connect": "^1.0.0",
     "notistack": "^3.0.1",
+    "openai-edge": "^1.1.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-hook-form": "^7.45.0",

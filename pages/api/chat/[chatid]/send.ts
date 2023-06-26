@@ -4,7 +4,6 @@ import { ChatWithConfig, Message, MessageType } from '@/types/model/chat'
 import { createParser, ParsedEvent, ReconnectInterval } from 'eventsource-parser'
 import { NextFetchEvent, NextRequest } from 'next/server'
 import { getOpenai } from '@/utils/openai'
-import { ChatCompletionRequestMessage } from '@/lib/openai-edge/types/chat'
 import { errorHandlerEdge } from '@/services/middlewares/edge'
 
 interface pushMessageOptions {
@@ -46,7 +45,7 @@ router.post(async (req) => {
     if (!chatData) {
         throw new Error(JSON.stringify({ errno: 'A0404', errmsg: '发送消息失败' }))
     }
-    const messageList = chatData.messages.map(({ content, role }) => ({ content, role })) as ChatCompletionRequestMessage[]
+    const messageList = chatData.messages.map(({ content, role }) => ({ content, role }))
     chatData.preset?.prompt && messageList.unshift({ content: chatData.preset.prompt, role: 'system' })
     const response = await getOpenai().createChatCompletion({
         model: 'gpt-3.5-turbo',
