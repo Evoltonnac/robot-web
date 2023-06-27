@@ -8,6 +8,7 @@ import { useTheme } from '@mui/material/styles'
 import { materialDark, materialLight } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 import { useUser } from '../global/User'
 import Image from 'next/image'
+import { RobotIcon } from '../common/Icons'
 
 const ImgBlock: MarkdownToJSX.Override = ({ src, alt, title, className }) => {
     return (
@@ -89,7 +90,9 @@ const MessageCard: React.FC<MessageCardProps> = (props) => {
                 {isUser ? (
                     <Avatar className={classes.avatar} alt={user?.username.toUpperCase() || ''} src="broken.img" />
                 ) : (
-                    <Avatar className={classes.avatar} />
+                    <Avatar className={classes.avatar}>
+                        <RobotIcon />
+                    </Avatar>
                 )}
             </Grid>
             <Grid item flex="1" overflow="hidden" px={2} pb={1}>
