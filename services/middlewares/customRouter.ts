@@ -12,6 +12,7 @@ import { createRouter } from 'next-connect'
  * 03聊天列表
  * 04聊天交互
  * 05预设
+ * 06AI
  * 4-5位：从01自增
  */
 

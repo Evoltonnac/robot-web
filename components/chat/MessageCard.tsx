@@ -46,6 +46,7 @@ const PreBlock: MarkdownToJSX.Override = ({ children }) => {
 
 interface MessageCardProps {
     message: Message
+    botAvatar?: string
 }
 
 const useStyles = makeStyles<MessageCardProps>()((theme, { message }) => {
@@ -79,7 +80,7 @@ const useStyles = makeStyles<MessageCardProps>()((theme, { message }) => {
 
 const MessageCard: React.FC<MessageCardProps> = (props) => {
     const user = useUser()
-    const { message } = props
+    const { message, botAvatar } = props
     const { role } = message
     const { classes } = useStyles(props)
 
@@ -88,9 +89,9 @@ const MessageCard: React.FC<MessageCardProps> = (props) => {
         <Grid container width="90%" ml={isUser ? 0 : 'auto'} flexDirection={isUser ? 'row' : 'row-reverse'} flexWrap="nowrap" mb={2}>
             <Grid item flexShrink={0}>
                 {isUser ? (
-                    <Avatar className={classes.avatar} alt={user?.username.toUpperCase() || ''} src="broken.img" />
+                    <Avatar className={classes.avatar} alt={user?.username.toUpperCase() || ''} />
                 ) : (
-                    <Avatar className={classes.avatar}>
+                    <Avatar className={classes.avatar} src={botAvatar}>
                         <RobotIcon />
                     </Avatar>
                 )}

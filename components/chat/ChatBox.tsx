@@ -12,6 +12,7 @@ import { getAuthorizationHeader } from '@/src/utils/auth'
 import { Chat } from '@/types/view/chat'
 import { MessageType } from '@/types/model/chat'
 import _ from 'lodash'
+import { Preset } from '@/types/view/preset'
 
 const useStyles = makeStyles()((theme) => ({
     footerCard: {
@@ -27,12 +28,12 @@ const useStyles = makeStyles()((theme) => ({
 }))
 
 const ChatBot = ({ chatid }: { chatid?: string }) => {
-    // TODO: refactor styles
     const { classes } = useStyles()
     const elContainer = useRef<HTMLDivElement>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [inputValue, setInputValue] = useState<string>('')
     const [messageList, setMessageList] = useState<Message[]>([])
+    const [preset, setPreset] = useState<Preset>()
     const isSubmitting = useRef<boolean>(false)
     const sendCtrl = useRef<AbortController>()
 
@@ -150,10 +151,11 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
 
     useEffect(() => {
         chatid &&
-            clientRequest.get<Chat>(`/api/chat/${chatid}`).then((data) => {
-                if (data?.messages?.length) {
-                    setMessageList(data?.messages)
+            clientRequest.get<Chat>(`/api/chat/${chatid}`).then(({ messages, preset }) => {
+                if (messages?.length) {
+                    setMessageList(messages)
                 }
+                preset && setPreset(preset)
             })
         // abort send event stream when unmounted
         return handleAbort
@@ -174,7 +176,7 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
                 <>
                     <Box pt={5} pb={20} px={2}>
                         {messageList.map((item, index) => (
-                            <MessageCard key={index} message={item}></MessageCard>
+                            <MessageCard key={index} message={item} botAvatar={preset?.avatar}></MessageCard>
                         ))}
                         {messageList.length ? (
                             <Box textAlign="center">

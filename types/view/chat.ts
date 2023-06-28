@@ -1,5 +1,5 @@
 import * as ChatModel from '../model/chat'
-import { Preset } from '../model/preset'
+import { Preset } from '../view/preset'
 import { withId } from './common'
 
 export type Chat = withId<Omit<ChatModel.Chat, 'preset'>> & {
