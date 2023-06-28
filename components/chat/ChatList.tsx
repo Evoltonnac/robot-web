@@ -60,8 +60,13 @@ const useStyles = makeStyles()((theme) => {
             backgroundColor: 'transparent',
             color: theme.palette.primary.main,
         },
-        chatItemBadges: {
+        chatItemSecondary: {
+            display: 'flex',
+            alignItems: 'center',
             marginTop: theme.spacing(1),
+        },
+        chatItemTotal: {
+            marginRight: theme.spacing(2),
         },
     }
 })
@@ -104,16 +109,17 @@ export const ChatList: React.FC<ChatListProps> = ({ list, actions }) => {
         }
     }
 
-    const ChatItemSecondary = ({ chatItem }: { chatItem: ChatListItem }) => (
-        <Box>
-            {chatItem.messagesInfo.total ? `共${chatItem.messagesInfo.total}条` : null}
-            <Box className={classes.chatItemBadges}>
-                {chatItem.preset?.title ? (
-                    <Chip color="primary" size="small" label={chatItem.preset.title} icon={<BookmarkBorder />}></Chip>
-                ) : null}
+    const ChatItemSecondary = ({ chatItem }: { chatItem: ChatListItem }) => {
+        const total = chatItem.messagesInfo.total
+        const presetTitle = chatItem.preset?.title
+        const isShow = total || presetTitle
+        return isShow ? (
+            <Box className={classes.chatItemSecondary}>
+                {total ? <span className={classes.chatItemTotal}>共{total}条</span> : null}
+                {presetTitle ? <Chip color="primary" size="small" label={presetTitle} icon={<BookmarkBorder />}></Chip> : null}
             </Box>
-        </Box>
-    )
+        ) : null
+    }
 
     return (
         <>
@@ -135,6 +141,9 @@ export const ChatList: React.FC<ChatListProps> = ({ list, actions }) => {
                                 noWrap: true,
                             }}
                             secondary={<ChatItemSecondary chatItem={item} />}
+                            secondaryTypographyProps={{
+                                component: 'div',
+                            }}
                         />
 
                         <ListItemSecondaryAction>

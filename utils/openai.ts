@@ -1,4 +1,4 @@
-import { Configuration, OpenAIApi } from '@/lib/openai-edge'
+import { Configuration, OpenAIApi } from 'openai-edge'
 
 let openai: OpenAIApi | null = null
 
