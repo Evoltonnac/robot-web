@@ -1,16 +1,19 @@
 import { Preset } from '@/types/view/preset'
-import { Dialog, Grid, Button, TextField, useMediaQuery, useTheme, Box, Typography } from '@mui/material'
+import { Dialog, Grid, Button, TextField, useMediaQuery, Box, Typography } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { makeStyles } from 'tss-react/mui'
 import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined'
 import TitleOutlined from '@mui/icons-material/TitleOutlined'
+import { AIAvatarInput } from '../common/AIAvatarInput'
 
 const schema = yup.object().shape({
+    avatar: yup.string(),
     title: yup.string().max(8, '预设名太长').required('预设名不能为空'),
-    prompt: yup.string().max(200, '提示词太长').required('提示词不能为空'),
+    prompt: yup.string().max(1000, '提示词太长').required('提示词不能为空'),
 })
 
 const useStyles = makeStyles<{ fullScreen: boolean }>()((theme, { fullScreen }) => ({
@@ -59,14 +62,15 @@ export const PresetEditor: React.FC<PresetEditorProps> = ({ open, preset, onSubm
         handleSubmit,
         formState: { errors },
         reset,
+        control,
     } = useForm({
         resolver: yupResolver(schema),
     })
 
     useEffect(() => {
         if (open) {
-            const { title, prompt } = preset || {}
-            reset({ title, prompt })
+            const { avatar, title, prompt } = preset || {}
+            reset({ avatar, title, prompt })
         }
     }, [open])
 
@@ -93,6 +97,17 @@ export const PresetEditor: React.FC<PresetEditorProps> = ({ open, preset, onSubm
                 <Typography variant="subtitle1" align="center" mb={4}>
                     通过提示词，定制化你的ai助手
                 </Typography>
+                {/* avatar input section */}
+                <Grid container spacing={2} justifyContent="center" mb={2}>
+                    <Controller
+                        control={control}
+                        name="avatar"
+                        render={({ field: { value, onChange, onBlur } }) => (
+                            <AIAvatarInput id="avatar-input" {...{ value, onChange, onBlur }} />
+                        )}
+                    ></Controller>
+                </Grid>
+                {/* title input section */}
                 <Grid container spacing={2} justifyContent="center" mb={2}>
                     <Grid item>
                         <TitleOutlined className={classes.label} />
@@ -108,6 +123,7 @@ export const PresetEditor: React.FC<PresetEditorProps> = ({ open, preset, onSubm
                         />
                     </Grid>
                 </Grid>
+                {/* prompt input section */}
                 <Grid container spacing={2} justifyContent="center" mb={2}>
                     <Grid item>
                         <DescriptionOutlined className={classes.label} />

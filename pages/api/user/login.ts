@@ -5,8 +5,7 @@ import { generateJWT } from '@/services/middlewares/auth'
 import { formatUserInfo, getUserByName } from '@/services/user'
 import { setCookie } from '@/utils/common'
 import Boom from '@hapi/boom'
-
-const { DOMAIN = 'robot-web-evoltonnac.vercel.app' } = process.env
+import { HOSTNAME } from '@/utils/constant'
 
 const router = createCustomRouter<DBRequest, NextApiResponse>()
 
@@ -15,7 +14,7 @@ router.use(dbMiddleware).post(async (req, res) => {
     const user = (await getUserByName(username)).toObject()
     if (password === user.password) {
         const accessToken = generateJWT(user)
-        setCookie(res, 'AccessToken', accessToken, { domain: DOMAIN, path: '/' })
+        setCookie(res, 'AccessToken', accessToken, { domain: HOSTNAME, path: '/' })
         res.status(200).json(formatUserInfo(user))
         res.end()
     } else {
