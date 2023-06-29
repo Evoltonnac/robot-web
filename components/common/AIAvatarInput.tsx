@@ -6,9 +6,11 @@ import { clientRequest } from '@/src/utils/request'
 
 const useStyles = makeStyles<{ isShowPanel: boolean }>()((theme, { isShowPanel }) => ({
     container: {
-        width: 'auto',
+        width: '100%',
+        display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        flexWrap: 'nowrap',
         backgroundColor: isShowPanel ? theme.palette.background.default : 'transparent',
         transition: 'background .5s ease',
         padding: isShowPanel ? `${theme.spacing(2)} ${theme.spacing(3)}` : 0,
@@ -21,6 +23,10 @@ const useStyles = makeStyles<{ isShowPanel: boolean }>()((theme, { isShowPanel }
     },
     avatarIcon: {
         fontSize: theme.spacing(4),
+    },
+    inputWrapper: {
+        width: '100%',
+        marginLeft: theme.spacing(2),
     },
     input: {
         fontSize: theme.typography.pxToRem(14),
@@ -84,52 +90,49 @@ export const AIAvatarInput: React.FC<AIAvatarInputProps> = ({ id, value, onChang
                 setIsShowPanel(false)
             }}
         >
-            <Grid id={id} container className={classes.container}>
-                <Grid item>
-                    <Avatar
-                        alt="bot avatar"
-                        src={imgValue}
-                        onClick={() => {
-                            setIsShowPanel(true)
-                            onFocus && onFocus()
-                        }}
-                        className={classes.avatar}
-                    >
-                        <RobotIcon className={classes.avatarIcon} />
-                    </Avatar>
-                </Grid>
+            <div id={id} className={classes.container}>
+                <Avatar
+                    alt="bot avatar"
+                    src={imgValue}
+                    onClick={() => {
+                        setIsShowPanel(true)
+                        onFocus && onFocus()
+                    }}
+                    className={classes.avatar}
+                >
+                    <RobotIcon className={classes.avatarIcon} />
+                </Avatar>
                 {isShowPanel ? (
-                    <Grid item ml={2}>
-                        <TextField
-                            id="ai-avatar-prompt-input"
-                            size="small"
-                            value={prompt}
-                            onChange={(e) => {
-                                setPrompt(e.target.value)
-                            }}
-                            placeholder="输入描述文字"
-                            InputProps={{
-                                classes: {
-                                    input: classes.input,
-                                },
-                                endAdornment: (
-                                    <>
-                                        <Divider orientation="vertical" variant="middle" flexItem></Divider>
-                                        <Button
-                                            className={classes.endAdornmentButton}
-                                            size="small"
-                                            disabled={!prompt || isGenerating}
-                                            onClick={handleGenerateAvatar}
-                                        >
-                                            生成{isGenerating ? '中' : ''}
-                                        </Button>
-                                    </>
-                                ),
-                            }}
-                        />
-                    </Grid>
+                    <TextField
+                        id="ai-avatar-prompt-input"
+                        size="small"
+                        value={prompt}
+                        onChange={(e) => {
+                            setPrompt(e.target.value)
+                        }}
+                        placeholder="输入描述文字"
+                        className={classes.inputWrapper}
+                        InputProps={{
+                            classes: {
+                                input: classes.input,
+                            },
+                            endAdornment: (
+                                <>
+                                    <Divider orientation="vertical" variant="middle" flexItem></Divider>
+                                    <Button
+                                        className={classes.endAdornmentButton}
+                                        size="small"
+                                        disabled={!prompt || isGenerating}
+                                        onClick={handleGenerateAvatar}
+                                    >
+                                        生成{isGenerating ? '中' : ''}
+                                    </Button>
+                                </>
+                            ),
+                        }}
+                    />
                 ) : null}
-            </Grid>
+            </div>
         </ClickAwayListener>
     )
 }

@@ -9,6 +9,9 @@ import { makeStyles } from 'tss-react/mui'
 import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined'
 import TitleOutlined from '@mui/icons-material/TitleOutlined'
 import { AIAvatarInput } from '../common/AIAvatarInput'
+import _ from 'lodash'
+import { clientRequest } from '@/src/utils/request'
+import { upload } from '@/src/utils/upload'
 
 const schema = yup.object().shape({
     avatar: yup.string(),
@@ -80,8 +83,20 @@ export const PresetEditor: React.FC<PresetEditorProps> = ({ open, preset, onSubm
 
     const onSubmitHandler = async (data: Partial<Preset>) => {
         setIsSubmitting(true)
+        // get changed form fields
+        let changedFields = Object.keys(data) as Array<keyof Preset>
+        preset && (changedFields = changedFields.filter((key) => data[key] !== preset[key]))
+        const newPreset = _.pick(data, changedFields)
+        // if preset is specefied, add _id to data
+        if (preset) {
+            newPreset._id = preset._id
+        }
         try {
-            await onSubmit(data)
+            // upload file before submit
+            if (newPreset.avatar) {
+                newPreset.avatar = await upload(newPreset.avatar)
+            }
+            await onSubmit(newPreset)
             setIsSubmitting(false)
         } catch {
             setIsSubmitting(false)
