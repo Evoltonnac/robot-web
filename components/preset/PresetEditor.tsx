@@ -109,11 +109,11 @@ export const PresetEditor: React.FC<PresetEditorProps> = ({ open, preset, onSubm
                 <Typography variant="h5" align="center">
                     {preset ? '修改预设' : '创建预设'}
                 </Typography>
-                <Typography variant="subtitle1" align="center" mb={4}>
+                <Typography variant="subtitle1" align="center" mb={2}>
                     通过提示词，定制化你的ai助手
                 </Typography>
                 {/* avatar input section */}
-                <Grid container spacing={2} justifyContent="center" mb={2}>
+                <Box mb={2}>
                     <Controller
                         control={control}
                         name="avatar"
@@ -121,7 +121,7 @@ export const PresetEditor: React.FC<PresetEditorProps> = ({ open, preset, onSubm
                             <AIAvatarInput id="avatar-input" {...{ value, onChange, onBlur }} />
                         )}
                     ></Controller>
-                </Grid>
+                </Box>
                 {/* title input section */}
                 <Grid container spacing={2} justifyContent="center" mb={2}>
                     <Grid item>
