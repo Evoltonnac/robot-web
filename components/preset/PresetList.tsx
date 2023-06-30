@@ -1,4 +1,4 @@
-import { Box, Grid, IconButton, Paper, Typography } from '@mui/material'
+import { Avatar, Box, Grid, IconButton, Paper, Typography } from '@mui/material'
 import { Preset } from '@/types/view/preset'
 import Router from 'next/router'
 import { clientRequest } from '@/src/utils/request'
@@ -9,6 +9,8 @@ import Edit from '@mui/icons-material/Edit'
 import { makeStyles } from 'tss-react/mui'
 import { PresetEditor } from './PresetEditor'
 import { ChatListItem } from '@/types/view/chat'
+import { CSSObject } from 'tss-react/types'
+import { RobotIcon } from '../common/Icons'
 
 export const usePresetList = (presetList: Preset[]) => {
     const [list, setList] = useState<Preset[]>(presetList)
@@ -51,19 +53,25 @@ export const usePresetList = (presetList: Preset[]) => {
 }
 
 const useStyles = makeStyles()((theme) => {
-    const presetItem = {
-        height: '100px',
+    const presetItem: CSSObject = {
+        height: '100%',
         padding: `${theme.spacing(1)} ${theme.spacing(2)}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        flexDirection: 'column',
+        alignSelf: 'stretch',
     }
     return {
         presetItem,
+        presetAvatar: {
+            marginTop: theme.spacing(1),
+            marginBottom: theme.spacing(1),
+            backgroundColor: theme.palette.secondary.main,
+        },
         presetActions: {
             flex: '0 0 auto',
             display: 'flex',
-            flexDirection: 'column',
         },
         presetAddItem: {
             ...presetItem,
@@ -159,7 +167,10 @@ export const PresetList: React.FC<PresetListProps> = ({ list, actions }) => {
                                 handleAddChatWithPreset(preset._id)
                             }}
                         >
-                            <Typography variant="body1" flex="1">
+                            <Avatar alt="bot avatar" src={preset.avatar} className={classes.presetAvatar}>
+                                <RobotIcon />
+                            </Avatar>
+                            <Typography variant="body1" flex="1" noWrap={true} textAlign="center" width="100%">
                                 {preset.title}
                             </Typography>
                             <Box className={classes.presetActions}>
