@@ -73,7 +73,7 @@ export const AIAvatarInput: React.FC<AIAvatarInputProps> = ({ id, value, onChang
         }
         setIsGenerating(true)
         clientRequest
-            .post<{ url: string }>('api/avatar', { prompt }, { timeout: 30000 })
+            .post<{ url: string }>('api/pic/avatar', { prompt }, { timeout: 30000 })
             .then(({ url }) => {
                 handleChangeImage(url)
             })
