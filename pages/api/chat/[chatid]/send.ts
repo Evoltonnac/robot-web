@@ -94,6 +94,7 @@ router.post(async (req) => {
                      * Break if event stream finished.
                      */
                     if (data === '[DONE]') {
+                        console.info('[DONE] stream finished')
                         await storeFinalContent()
                         !isStreamClose && (isStreamClose = true) && controller.terminate()
                         return
@@ -123,14 +124,18 @@ router.post(async (req) => {
                                     )
                                 }
                                 if (choice?.finish_reason === 'length') {
+                                    console.info('[length] stream finished')
                                     await storeFinalContent()
                                     !isStreamClose && (isStreamClose = true) && controller.terminate()
                                 }
                             }
                         }
                     } catch (e) {
+                        console.info('[parse error] stream finished', e)
                         throw e
                     }
+                } else {
+                    console.info('[event] stream finished')
                 }
             }
 
