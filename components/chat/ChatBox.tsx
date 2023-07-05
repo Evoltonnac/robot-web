@@ -4,7 +4,6 @@ import { makeStyles } from 'tss-react/mui'
 import { Message } from '@/types/view/chat'
 import SendIcon from '@mui/icons-material/Send'
 import DeleteOutlineRounded from '@mui/icons-material/DeleteOutlineRounded'
-import { fetchEventSource } from '@microsoft/fetch-event-source/lib/cjs/index'
 import { DECODER } from '@/utils/shared'
 import MessageCard from './MessageCard'
 import { clientRequest } from '@/src/utils/request'
@@ -13,6 +12,7 @@ import { Chat } from '@/types/view/chat'
 import { MessageType } from '@/types/model/chat'
 import _ from 'lodash'
 import { Preset } from '@/types/view/preset'
+import { ParsedEvent, ReconnectInterval, createParser } from 'eventsource-parser'
 
 const useStyles = makeStyles()((theme) => ({
     footerCard: {
@@ -27,7 +27,7 @@ const useStyles = makeStyles()((theme) => ({
     },
 }))
 
-const ChatBot = ({ chatid }: { chatid?: string }) => {
+const ChatBox = ({ chatid }: { chatid?: string }) => {
     const { classes } = useStyles()
     const elContainer = useRef<HTMLDivElement>(null)
     const [isLoading, setIsLoading] = useState(false)
@@ -35,7 +35,7 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
     const [messageList, setMessageList] = useState<Message[]>([])
     const [preset, setPreset] = useState<Preset>()
     const isSubmitting = useRef<boolean>(false)
-    const sendCtrl = useRef<AbortController>()
+    const sendCtrl = useRef<AbortController | null>()
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setInputValue(e.target.value)
@@ -64,39 +64,84 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
                 content: '',
                 _id: '' + Date.now(),
             }
-            await fetchEventSource(`/api/chat/${chatid}/send`, {
+            const res = await fetch(`/api/chat/${chatid}/send`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     ...getAuthorizationHeader(),
                 },
                 body: JSON.stringify({ message: selfMsg }),
-                signal: sendCtrl.current.signal,
-                openWhenHidden: true,
-                async onopen(res) {
-                    if (res.ok && res.status === 200) {
-                    } else {
-                        throw new Error()
-                    }
-                },
-                onmessage(msg) {
-                    const buffer = msg.data.split(',') as unknown as Iterable<number>
-                    const { role, content, type } = JSON.parse(DECODER.decode(Uint8Array.from(buffer)))
-                    role && (newMessage.role = role)
-                    type && (newMessage.type = type)
-                    content && (newMessage.content += content)
-                    updateMessage(newMessage, index)
-                    if (msg.event === 'FatalError') {
-                        throw new Error(msg.data)
-                    }
-                },
-                onclose() {
-                    throw new Error()
-                },
-                onerror(err) {
-                    throw err
-                },
+                // signal: sendCtrl.current.signal,
             })
+            if (!res.ok || !res.body) {
+                throw new Error('未知错误')
+            } else {
+                const reader = res.body.getReader()
+                const onParse = async (event: ParsedEvent | ReconnectInterval) => {
+                    if (event.type === 'event') {
+                        const { data } = event
+                        /**
+                         * Break if event stream finished.
+                         */
+                        if (data === '[DONE]') {
+                        }
+                        try {
+                            const { role, content, type } = JSON.parse(data)
+                            role && (newMessage.role = role)
+                            type && (newMessage.type = type)
+                            content && (newMessage.content += content)
+                            updateMessage(newMessage, index)
+                        } catch (e) {
+                            throw e
+                        }
+                    }
+                }
+
+                const eventSourceParse = createParser(onParse)
+                while (true) {
+                    console.log('read', sendCtrl.current)
+                    const { done, value } = await reader.read()
+                    if (done) {
+                        break
+                    }
+                    eventSourceParse.feed(DECODER.decode(value))
+                    // const { role, content, type } = JSON.parse(DECODER.decode(value))
+                    // role && (newMessage.role = role)
+                    // type && (newMessage.type = type)
+                    // content && (newMessage.content += content)
+                    // updateMessage(newMessage, index)
+                    if (sendCtrl.current === null) {
+                        console.log('--------------cancel--------------')
+                        reader.cancel()
+                        break
+                    }
+                }
+                setIsLoading(false)
+            }
+            // async onopen(res) {
+            //     if (res.ok && res.status === 200) {
+            //     } else {
+            //         throw new Error()
+            //     }
+            // },
+            // onmessage(msg) {
+            //     const buffer = msg.data.split(',') as unknown as Iterable<number>
+            //     const { role, content, type } = JSON.parse(DECODER.decode(Uint8Array.from(buffer)))
+            //     role && (newMessage.role = role)
+            //     type && (newMessage.type = type)
+            //     content && (newMessage.content += content)
+            //     updateMessage(newMessage, index)
+            //     if (msg.event === 'FatalError') {
+            //         throw new Error(msg.data)
+            //     }
+            // },
+            // onclose() {
+            //     throw new Error()
+            // },
+            // onerror(err) {
+            //     throw err
+            // },
+            // })
         } catch (e) {
             setIsLoading(false)
         }
@@ -135,6 +180,8 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
     }
     const handleAbort = () => {
         sendCtrl.current?.abort()
+        sendCtrl.current = null
+        console.log('stop', sendCtrl.current)
         setIsLoading(false)
     }
 
@@ -180,10 +227,11 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
                         ))}
                         {messageList.length ? (
                             <Box textAlign="center">
-                                {isLoading ? null : (
-                                    // <Button onClick={handleAbort} color="error">
-                                    //     停止响应
-                                    // </Button>
+                                {isLoading ? (
+                                    <Button onClick={handleAbort} color="error">
+                                        停止响应
+                                    </Button>
+                                ) : (
                                     <Button onClick={handleClear} color="error" endIcon={<DeleteOutlineRounded />}>
                                         清空此对话
                                     </Button>
@@ -217,4 +265,4 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
     )
 }
 
-export default ChatBot
+export default ChatBox

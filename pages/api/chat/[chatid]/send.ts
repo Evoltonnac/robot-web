@@ -1,9 +1,10 @@
 import { createEdgeRouter } from 'next-connect'
 import { DECODER, ENCODER } from '@/utils/shared'
 import { ChatWithConfig, Message, MessageType } from '@/types/model/chat'
-import { createParser, ParsedEvent, ReconnectInterval } from 'eventsource-parser'
-import { NextFetchEvent, NextRequest } from 'next/server'
+import { createParser, ReconnectInterval, type ParsedEvent, type EventSourceParser } from 'eventsource-parser'
+import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server'
 import { getOpenai } from '@/utils/openai'
+import type { ChatCompletionRequestMessage } from 'openai-edge'
 import { errorHandlerEdge } from '@/services/middlewares/edge'
 
 interface pushMessageOptions {
@@ -37,16 +38,19 @@ router.post(async (req) => {
     const chatId = req.nextUrl.searchParams.get('chatid')
     const message = (await req.json()).message
     const { role, type, content } = message
+    // check chatid
     if (!chatId) {
         throw new Error(JSON.stringify({ errno: 'A0401', errmsg: '聊天内容不存在', status: 404 }))
     }
+    // store user message first and check result success
     const chatData = await pushMessage(req, { chatId, message: { role, type, content }, needConfig: true })
-    // return NextResponse.json(chatData)
     if (!chatData) {
         throw new Error(JSON.stringify({ errno: 'A0404', errmsg: '发送消息失败' }))
     }
-    const messageList = chatData.messages.map(({ content, role }) => ({ content, role }))
+    // send all message to openai api
+    const messageList = chatData.messages.map(({ content, role }) => ({ content, role })) as ChatCompletionRequestMessage[]
     chatData.preset?.prompt && messageList.unshift({ content: chatData.preset.prompt, role: 'system' })
+
     const response = await getOpenai().createChatCompletion({
         model: 'gpt-3.5-turbo',
         messages: messageList,
@@ -79,7 +83,9 @@ router.post(async (req) => {
         }))
     }
 
-    const stream = new ReadableStream({
+    let eventSourceParse: EventSourceParser
+
+    const stream = new TransformStream({
         async start(controller) {
             const onParse = async (event: ParsedEvent | ReconnectInterval) => {
                 if (event.type === 'event') {
@@ -89,7 +95,7 @@ router.post(async (req) => {
                      */
                     if (data === '[DONE]') {
                         await storeFinalContent()
-                        !isStreamClose && (isStreamClose = true) && controller.close()
+                        !isStreamClose && (isStreamClose = true) && controller.terminate()
                         return
                     }
                     try {
@@ -100,29 +106,25 @@ router.post(async (req) => {
                                 if (choice?.delta?.role) {
                                     controller.enqueue(
                                         ENCODER.encode(
-                                            `data: ${ENCODER.encode(
-                                                JSON.stringify({
-                                                    role: 'assistant',
-                                                    type: MessageType.TEXT,
-                                                })
-                                            )}\n\n`
+                                            `data: ${JSON.stringify({
+                                                role: 'assistant',
+                                                type: MessageType.TEXT,
+                                            })}\n\n`
                                         )
                                     )
                                 } else if (choice?.delta?.content) {
                                     finalContent += choice.delta.content
                                     controller.enqueue(
                                         ENCODER.encode(
-                                            `data: ${ENCODER.encode(
-                                                JSON.stringify({
-                                                    content: choice.delta.content,
-                                                })
-                                            )}\n\n`
+                                            `data: ${JSON.stringify({
+                                                content: choice.delta.content,
+                                            })}\n\n`
                                         )
                                     )
                                 }
                                 if (choice?.finish_reason === 'length') {
                                     await storeFinalContent()
-                                    !isStreamClose && (isStreamClose = true) && controller.close()
+                                    !isStreamClose && (isStreamClose = true) && controller.terminate()
                                 }
                             }
                         }
@@ -132,37 +134,28 @@ router.post(async (req) => {
                 }
             }
 
-            const parser = createParser(onParse)
-            if (response.body) {
-                for await (const chunk of response.body as any) {
-                    const decoded = DECODER.decode(chunk as Buffer)
-
-                    try {
-                        const parsed = JSON.parse(decoded)
-
-                        if (parsed.hasOwnProperty('error')) controller.close()
-                    } catch (e) {}
-
-                    parser.feed(decoded)
-                }
-            }
+            eventSourceParse = createParser(onParse)
         },
-        cancel: async () => {
-            await storeFinalContent()
+        transform(chunk) {
+            eventSourceParse.feed(DECODER.decode(chunk))
         },
     })
 
-    return new Response(stream, {
+    if (!response.ok || !response.body) {
+        throw new Error(JSON.stringify({ errno: 'C0401', errmsg: 'OpenAI请求异常' }))
+    }
+
+    const responseStream = response.body.pipeThrough(stream)
+    return new NextResponse(responseStream, {
+        status: 200,
         headers: {
-            'Content-Type': 'text/event-stream;charset=utf-8',
-            'Cache-Control': 'no-cache, no-transform',
-            'X-Accel-Buffering': 'no',
+            'Content-Type': 'text/plain; charset=utf-8',
         },
     })
 })
 
 export const config = {
-    runtime: 'experimental-edge',
+    runtime: 'edge',
 }
 
 export default router.handler({

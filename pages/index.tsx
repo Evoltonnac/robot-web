@@ -1,12 +1,7 @@
-import { clientRequest } from '@/src/utils/request'
 import { Container, Typography } from '@mui/material'
 import Head from 'next/head'
-import { useEffect } from 'react'
 
 export default function Home() {
-    useEffect(() => {
-        clientRequest.get('/api/test')
-    }, [])
     return (
         <>
             <Head>
