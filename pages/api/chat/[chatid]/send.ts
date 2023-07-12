@@ -1,9 +1,8 @@
 import { createEdgeRouter } from 'next-connect'
-import { DECODER, ENCODER } from '@/utils/shared'
 import { ChatWithConfig, Message, MessageType } from '@/types/model/chat'
-import { createParser, ParsedEvent, ReconnectInterval } from 'eventsource-parser'
 import { NextFetchEvent, NextRequest } from 'next/server'
 import { getOpenai } from '@/utils/openai'
+import { OpenAIStream, StreamingTextResponse } from 'ai'
 import { errorHandlerEdge } from '@/services/middlewares/edge'
 
 interface pushMessageOptions {
@@ -55,14 +54,12 @@ router.post(async (req) => {
         stream: true,
     })
 
-    let finalContent = ''
     let storePromise: Promise<ChatWithConfig | null> | undefined
-    let isStreamClose = false
 
     // return a promise to store message
     // in edge functions, store fetch will be aborted if close stream immediately after fetch
     // so, use await or maybe settimeout to close after the post request reach server
-    const storeFinalContent = () => {
+    const storeFinalContent = (finalContent: string) => {
         if (!finalContent) {
             return Promise.resolve()
         }
@@ -79,90 +76,17 @@ router.post(async (req) => {
         }))
     }
 
-    const stream = new ReadableStream({
-        async start(controller) {
-            const onParse = async (event: ParsedEvent | ReconnectInterval) => {
-                if (event.type === 'event') {
-                    const { data } = event
-                    /**
-                     * Break if event stream finished.
-                     */
-                    if (data === '[DONE]') {
-                        await storeFinalContent()
-                        !isStreamClose && (isStreamClose = true) && controller.close()
-                        return
-                    }
-                    try {
-                        const parsed = JSON.parse(data)
-                        if (parsed?.choices) {
-                            const { choices } = parsed
-                            for (const choice of choices) {
-                                if (choice?.delta?.role) {
-                                    controller.enqueue(
-                                        ENCODER.encode(
-                                            `data: ${ENCODER.encode(
-                                                JSON.stringify({
-                                                    role: 'assistant',
-                                                    type: MessageType.TEXT,
-                                                })
-                                            )}\n\n`
-                                        )
-                                    )
-                                } else if (choice?.delta?.content) {
-                                    finalContent += choice.delta.content
-                                    controller.enqueue(
-                                        ENCODER.encode(
-                                            `data: ${ENCODER.encode(
-                                                JSON.stringify({
-                                                    content: choice.delta.content,
-                                                })
-                                            )}\n\n`
-                                        )
-                                    )
-                                }
-                                if (choice?.finish_reason === 'length') {
-                                    await storeFinalContent()
-                                    !isStreamClose && (isStreamClose = true) && controller.close()
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        throw e
-                    }
-                }
-            }
-
-            const parser = createParser(onParse)
-            if (response.body) {
-                for await (const chunk of response.body as any) {
-                    const decoded = DECODER.decode(chunk as Buffer)
-
-                    try {
-                        const parsed = JSON.parse(decoded)
-
-                        if (parsed.hasOwnProperty('error')) controller.close()
-                    } catch (e) {}
-
-                    parser.feed(decoded)
-                }
-            }
-        },
-        cancel: async () => {
-            await storeFinalContent()
+    const stream = OpenAIStream(response, {
+        async onCompletion(text) {
+            await storeFinalContent(text)
         },
     })
 
-    return new Response(stream, {
-        headers: {
-            'Content-Type': 'text/event-stream;charset=utf-8',
-            'Cache-Control': 'no-cache, no-transform',
-            'X-Accel-Buffering': 'no',
-        },
-    })
+    return new StreamingTextResponse(stream)
 })
 
 export const config = {
-    runtime: 'experimental-edge',
+    runtime: 'edge',
 }
 
 export default router.handler({
