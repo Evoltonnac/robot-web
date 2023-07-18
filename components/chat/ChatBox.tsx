@@ -53,6 +53,17 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
         })
     }
 
+    const removeMessage = (index: number) => {
+        setMessageList((prevState) => {
+            const length = prevState.length
+            if (index >= 0 && index < length) {
+                prevState.splice(index, 1)
+                return [...prevState]
+            }
+            return prevState
+        })
+    }
+
     // send msg to api and receive stream
     const sendMsg = async (selfMsg: Message, index: number) => {
         setIsLoading(true)
@@ -64,6 +75,7 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
                 content: '',
                 _id: '' + Date.now(),
             }
+            updateMessage(newMessage, index)
             const res = await fetch(`/api/chat/${chatid}/send`, {
                 method: 'POST',
                 headers: {
@@ -74,6 +86,7 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
                 signal: sendCtrl.current.signal,
             })
             if (!res.ok || !res.body) {
+                removeMessage(index)
                 throw new Error('未知错误')
             } else {
                 const reader = res.body.getReader()
@@ -96,6 +109,7 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
                 setIsLoading(false)
             }
         } catch (e) {
+            removeMessage(index)
             setIsLoading(false)
         }
     }
@@ -175,7 +189,12 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
                 <>
                     <Box pt={5} pb={20} px={2}>
                         {messageList.map((item, index) => (
-                            <MessageCard key={index} message={item} botAvatar={preset?.avatar}></MessageCard>
+                            <MessageCard
+                                key={index}
+                                message={item}
+                                botAvatar={preset?.avatar}
+                                isLoading={isLoading && index === messageList.length - 1}
+                            ></MessageCard>
                         ))}
                         {messageList.length ? (
                             <Box textAlign="center">
