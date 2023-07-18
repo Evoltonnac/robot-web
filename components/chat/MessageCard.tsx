@@ -8,7 +8,7 @@ import { useTheme } from '@mui/material/styles'
 import { materialDark, materialLight } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 import { useUser } from '../global/User'
 import Image from 'next/image'
-import { RobotIcon } from '../common/Icons'
+import { LoadingBalls, RobotIcon } from '../common/Icons'
 
 const ImgBlock: MarkdownToJSX.Override = ({ src, alt, title, className }) => {
     return (
@@ -47,6 +47,7 @@ const PreBlock: MarkdownToJSX.Override = ({ children }) => {
 interface MessageCardProps {
     message: Message
     botAvatar?: string
+    isLoading?: boolean
 }
 
 const useStyles = makeStyles<MessageCardProps>()((theme, { message }) => {
@@ -62,6 +63,15 @@ const useStyles = makeStyles<MessageCardProps>()((theme, { message }) => {
             overflow: 'hidden',
             marginLeft: isUser ? '0' : 'auto',
             marginRight: isUser ? 'auto' : '0',
+        },
+        loadingContent: {
+            width: '75px',
+            height: '32.5px',
+            color: theme.palette.primary.main,
+            '>svg': {
+                width: '100%',
+                height: '100%',
+            },
         },
         mdImage: {
             minWidth: '50px',
@@ -80,7 +90,7 @@ const useStyles = makeStyles<MessageCardProps>()((theme, { message }) => {
 
 const MessageCard: React.FC<MessageCardProps> = (props) => {
     const user = useUser()
-    const { message, botAvatar } = props
+    const { message, botAvatar, isLoading } = props
     const { role } = message
     const { classes } = useStyles(props)
 
@@ -98,23 +108,29 @@ const MessageCard: React.FC<MessageCardProps> = (props) => {
             </Grid>
             <Grid item flex="1" overflow="hidden" px={2} pb={1}>
                 <Paper className={classes.content} elevation={0}>
-                    <Markdown
-                        options={{
-                            wrapper: 'article',
-                            forceWrapper: true,
-                            overrides: {
-                                pre: PreBlock,
-                                img: {
-                                    component: ImgBlock,
-                                    props: {
-                                        className: classes.mdImage,
+                    {isLoading && !message.content ? (
+                        <div className={classes.loadingContent}>
+                            <LoadingBalls></LoadingBalls>
+                        </div>
+                    ) : (
+                        <Markdown
+                            options={{
+                                wrapper: 'article',
+                                forceWrapper: true,
+                                overrides: {
+                                    pre: PreBlock,
+                                    img: {
+                                        component: ImgBlock,
+                                        props: {
+                                            className: classes.mdImage,
+                                        },
                                     },
                                 },
-                            },
-                        }}
-                    >
-                        {message.content}
-                    </Markdown>
+                            }}
+                        >
+                            {message.content}
+                        </Markdown>
+                    )}
                 </Paper>
             </Grid>
         </Grid>

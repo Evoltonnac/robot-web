@@ -4,7 +4,6 @@ import { makeStyles } from 'tss-react/mui'
 import { Message } from '@/types/view/chat'
 import SendIcon from '@mui/icons-material/Send'
 import DeleteOutlineRounded from '@mui/icons-material/DeleteOutlineRounded'
-import { fetchEventSource } from '@microsoft/fetch-event-source/lib/cjs/index'
 import { DECODER } from '@/utils/shared'
 import MessageCard from './MessageCard'
 import { clientRequest } from '@/src/utils/request'
@@ -35,7 +34,7 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
     const [messageList, setMessageList] = useState<Message[]>([])
     const [preset, setPreset] = useState<Preset>()
     const isSubmitting = useRef<boolean>(false)
-    const sendCtrl = useRef<AbortController>()
+    const sendCtrl = useRef<AbortController | null>()
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setInputValue(e.target.value)
@@ -54,6 +53,18 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
         })
     }
 
+    const removeMessage = (index: number) => {
+        setMessageList((prevState) => {
+            const length = prevState.length
+            if (index >= 0 && index < length) {
+                prevState.splice(index, 1)
+                return [...prevState]
+            }
+            return prevState
+        })
+    }
+
+    // send msg to api and receive stream
     const sendMsg = async (selfMsg: Message, index: number) => {
         setIsLoading(true)
         sendCtrl.current = new AbortController()
@@ -64,7 +75,8 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
                 content: '',
                 _id: '' + Date.now(),
             }
-            await fetchEventSource(`/api/chat/${chatid}/send`, {
+            updateMessage(newMessage, index)
+            const res = await fetch(`/api/chat/${chatid}/send`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -72,32 +84,32 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
                 },
                 body: JSON.stringify({ message: selfMsg }),
                 signal: sendCtrl.current.signal,
-                openWhenHidden: true,
-                async onopen(res) {
-                    if (res.ok && res.status === 200) {
-                    } else {
-                        throw new Error()
-                    }
-                },
-                onmessage(msg) {
-                    const buffer = msg.data.split(',') as unknown as Iterable<number>
-                    const { role, content, type } = JSON.parse(DECODER.decode(Uint8Array.from(buffer)))
-                    role && (newMessage.role = role)
-                    type && (newMessage.type = type)
-                    content && (newMessage.content += content)
-                    updateMessage(newMessage, index)
-                    if (msg.event === 'FatalError') {
-                        throw new Error(msg.data)
-                    }
-                },
-                onclose() {
-                    throw new Error()
-                },
-                onerror(err) {
-                    throw err
-                },
             })
+            if (!res.ok || !res.body) {
+                removeMessage(index)
+                throw new Error('未知错误')
+            } else {
+                const reader = res.body.getReader()
+
+                while (true) {
+                    const { done, value } = await reader.read()
+                    if (done) {
+                        break
+                    }
+                    const chunkData = DECODER.decode(value)
+                    if (chunkData) {
+                        newMessage.content += chunkData
+                        updateMessage(newMessage, index)
+                    }
+                    if (sendCtrl.current === null) {
+                        reader.cancel()
+                        break
+                    }
+                }
+                setIsLoading(false)
+            }
         } catch (e) {
+            removeMessage(index)
             setIsLoading(false)
         }
     }
@@ -135,6 +147,7 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
     }
     const handleAbort = () => {
         sendCtrl.current?.abort()
+        sendCtrl.current = null
         setIsLoading(false)
     }
 
@@ -169,14 +182,19 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
             ref={elContainer}
             sx={{
                 maxHeight: '100vh',
-                overflow: 'scroll',
+                overflow: 'hidden auto',
             }}
         >
             {chatid ? (
                 <>
                     <Box pt={5} pb={20} px={2}>
                         {messageList.map((item, index) => (
-                            <MessageCard key={index} message={item} botAvatar={preset?.avatar}></MessageCard>
+                            <MessageCard
+                                key={index}
+                                message={item}
+                                botAvatar={preset?.avatar}
+                                isLoading={isLoading && index === messageList.length - 1}
+                            ></MessageCard>
                         ))}
                         {messageList.length ? (
                             <Box textAlign="center">
@@ -191,26 +209,33 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
                             </Box>
                         ) : null}
                     </Box>
-                    <Box position="fixed" left={0} bottom={0} width="100%" px={2} pb={2} bgcolor="background.default">
-                        <Box className={classes.footerCard}>
-                            <Grid container spacing={2}>
-                                <Grid item xs>
-                                    <OutlinedInput size="small" value={inputValue} fullWidth onChange={handleInputChange}></OutlinedInput>
+                    {messageList.length <= 40 ? (
+                        <Box position="fixed" left={0} bottom={0} width="100%" px={2} pb={2} bgcolor="background.default">
+                            <Box className={classes.footerCard}>
+                                <Grid container spacing={2}>
+                                    <Grid item xs>
+                                        <OutlinedInput
+                                            size="small"
+                                            value={inputValue}
+                                            fullWidth
+                                            onChange={handleInputChange}
+                                        ></OutlinedInput>
+                                    </Grid>
+                                    <Grid item width={100} alignSelf="stretch">
+                                        <Button
+                                            className={classes.sendButton}
+                                            variant="contained"
+                                            fullWidth
+                                            onClick={handleSend}
+                                            disabled={isLoading || !inputValue}
+                                        >
+                                            <SendIcon />
+                                        </Button>
+                                    </Grid>
                                 </Grid>
-                                <Grid item width={100} alignSelf="stretch">
-                                    <Button
-                                        className={classes.sendButton}
-                                        variant="contained"
-                                        fullWidth
-                                        onClick={handleSend}
-                                        disabled={isLoading || !inputValue}
-                                    >
-                                        <SendIcon />
-                                    </Button>
-                                </Grid>
-                            </Grid>
+                            </Box>
                         </Box>
-                    </Box>
+                    ) : null}
                 </>
             ) : null}
         </Box>

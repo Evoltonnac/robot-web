@@ -1,10 +1,15 @@
 import { createEdgeRouter } from 'next-connect'
-import { DECODER, ENCODER } from '@/utils/shared'
 import { ChatWithConfig, Message, MessageType } from '@/types/model/chat'
-import { createParser, ParsedEvent, ReconnectInterval } from 'eventsource-parser'
 import { NextFetchEvent, NextRequest } from 'next/server'
-import { getOpenai } from '@/utils/openai'
+import { LangChainStream, StreamingTextResponse } from 'ai'
 import { errorHandlerEdge } from '@/services/middlewares/edge'
+import { ChatOpenAI } from 'langchain/chat_models/openai'
+import { Calculator } from 'langchain/tools/calculator'
+import { AIMessage, HumanMessage, SystemMessage } from 'langchain/schema'
+import { initializeAgentExecutorWithOptions } from 'langchain/agents'
+import { BufferMemory, ChatMessageHistory } from 'langchain/memory'
+import { LANGUAGE_SERP_MAP, checkLanguage } from '@/utils/langchain'
+import { SerpAPITool } from '@/utils/langchain/serpApiTool'
 
 interface pushMessageOptions {
     chatId: string
@@ -46,23 +51,63 @@ router.post(async (req) => {
         throw new Error(JSON.stringify({ errno: 'A0404', errmsg: '发送消息失败' }))
     }
     const messageList = chatData.messages.map(({ content, role }) => ({ content, role }))
-    chatData.preset?.prompt && messageList.unshift({ content: chatData.preset.prompt, role: 'system' })
-    const response = await getOpenai().createChatCompletion({
-        model: 'gpt-3.5-turbo',
-        messages: messageList,
-        max_tokens: 200,
+    const prompt = `${
+        chatData.preset?.prompt || 'You are a friendly AI assistant. Answer the following questions truthfully and as best as you can.'
+    } The UTC time is ${new Date().toString()}.`
+
+    const { stream, handlers } = LangChainStream({
+        async onCompletion(text) {
+            await storeFinalContent(text)
+        },
+    })
+    const llm = new ChatOpenAI({
+        modelName: 'gpt-3.5-turbo-0613',
+        maxTokens: 500,
         temperature: 0,
-        stream: true,
+        streaming: true,
+    })
+    const serpApiTool = new SerpAPITool(
+        {
+            ...LANGUAGE_SERP_MAP[checkLanguage(content)],
+        },
+        `${req.nextUrl.origin}/api/brightdata`,
+        {
+            headers: { authorization: req.headers.get('authorization') || '' },
+        }
+    )
+    const memory = new BufferMemory({
+        chatHistory: new ChatMessageHistory(
+            messageList
+                .slice(0, messageList.length - 1)
+                .map((m) =>
+                    m.role == 'system'
+                        ? new SystemMessage(m.content)
+                        : m.role == 'user'
+                        ? new HumanMessage(m.content)
+                        : new AIMessage(m.content)
+                )
+        ),
+        memoryKey: 'chat_history',
+        returnMessages: true,
+    })
+    const agent = await initializeAgentExecutorWithOptions([serpApiTool, new Calculator()], llm, {
+        agentType: 'openai-functions',
+        agentArgs: {
+            prefix: prompt,
+        },
+        verbose: true,
+        memory,
+    })
+    agent.call({ input: content }, [handlers]).catch((err) => {
+        console.error(err)
     })
 
-    let finalContent = ''
     let storePromise: Promise<ChatWithConfig | null> | undefined
-    let isStreamClose = false
 
     // return a promise to store message
     // in edge functions, store fetch will be aborted if close stream immediately after fetch
     // so, use await or maybe settimeout to close after the post request reach server
-    const storeFinalContent = () => {
+    const storeFinalContent = (finalContent: string) => {
         if (!finalContent) {
             return Promise.resolve()
         }
@@ -79,90 +124,11 @@ router.post(async (req) => {
         }))
     }
 
-    const stream = new ReadableStream({
-        async start(controller) {
-            const onParse = async (event: ParsedEvent | ReconnectInterval) => {
-                if (event.type === 'event') {
-                    const { data } = event
-                    /**
-                     * Break if event stream finished.
-                     */
-                    if (data === '[DONE]') {
-                        await storeFinalContent()
-                        !isStreamClose && (isStreamClose = true) && controller.close()
-                        return
-                    }
-                    try {
-                        const parsed = JSON.parse(data)
-                        if (parsed?.choices) {
-                            const { choices } = parsed
-                            for (const choice of choices) {
-                                if (choice?.delta?.role) {
-                                    controller.enqueue(
-                                        ENCODER.encode(
-                                            `data: ${ENCODER.encode(
-                                                JSON.stringify({
-                                                    role: 'assistant',
-                                                    type: MessageType.TEXT,
-                                                })
-                                            )}\n\n`
-                                        )
-                                    )
-                                } else if (choice?.delta?.content) {
-                                    finalContent += choice.delta.content
-                                    controller.enqueue(
-                                        ENCODER.encode(
-                                            `data: ${ENCODER.encode(
-                                                JSON.stringify({
-                                                    content: choice.delta.content,
-                                                })
-                                            )}\n\n`
-                                        )
-                                    )
-                                }
-                                if (choice?.finish_reason === 'length') {
-                                    await storeFinalContent()
-                                    !isStreamClose && (isStreamClose = true) && controller.close()
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        throw e
-                    }
-                }
-            }
-
-            const parser = createParser(onParse)
-            if (response.body) {
-                for await (const chunk of response.body as any) {
-                    const decoded = DECODER.decode(chunk as Buffer)
-
-                    try {
-                        const parsed = JSON.parse(decoded)
-
-                        if (parsed.hasOwnProperty('error')) controller.close()
-                    } catch (e) {}
-
-                    parser.feed(decoded)
-                }
-            }
-        },
-        cancel: async () => {
-            await storeFinalContent()
-        },
-    })
-
-    return new Response(stream, {
-        headers: {
-            'Content-Type': 'text/event-stream;charset=utf-8',
-            'Cache-Control': 'no-cache, no-transform',
-            'X-Accel-Buffering': 'no',
-        },
-    })
+    return new StreamingTextResponse(stream)
 })
 
 export const config = {
-    runtime: 'experimental-edge',
+    runtime: 'edge',
 }
 
 export default router.handler({
