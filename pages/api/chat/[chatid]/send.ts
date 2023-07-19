@@ -102,7 +102,7 @@ router.post(async (req) => {
         agentArgs: {
             prefix: `The UTC time is ${new Date().toString()}.`,
         },
-        verbose: true,
+        // verbose: true,
         memory,
     })
     agent.call({ input: content }, [handlers]).catch((err) => {
