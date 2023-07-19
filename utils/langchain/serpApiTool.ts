@@ -99,7 +99,7 @@ export class SerpAPITool extends Tool {
         const results: Array<{ r: number; d: string }> = []
         // get result and rank from one result object
         const parseSingleResult = (cur: any, idx: number) => {
-            const { description, title, subresults, global_rank } = cur
+            const { description, title, global_rank } = cur
             const rank = idx + 1
             if (description || title) {
                 results.push({
