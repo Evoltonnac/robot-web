@@ -10,6 +10,7 @@ import { initializeAgentExecutorWithOptions } from 'langchain/agents'
 import { BufferMemory, ChatMessageHistory } from 'langchain/memory'
 import { LANGUAGE_SERP_MAP, checkLanguage } from '@/utils/langchain'
 import { SerpAPITool } from '@/utils/langchain/serpApiTool'
+import { ChatCompletionRequestMessage } from 'openai-edge/types/api'
 
 interface pushMessageOptions {
     chatId: string
@@ -51,9 +52,15 @@ router.post(async (req) => {
         throw new Error(JSON.stringify({ errno: 'A0404', errmsg: '发送消息失败' }))
     }
     const messageList = chatData.messages.map(({ content, role }) => ({ content, role }))
+
+    // add system prompt at top
     const prompt = `${
         chatData.preset?.prompt || 'You are a friendly AI assistant. Answer the following questions truthfully and as best as you can.'
-    } The UTC time is ${new Date().toString()}.`
+    }`
+    messageList.unshift({
+        role: 'system',
+        content: prompt,
+    })
 
     const { stream, handlers } = LangChainStream({
         async onCompletion(text) {
@@ -66,6 +73,7 @@ router.post(async (req) => {
         temperature: 0,
         streaming: true,
     })
+    // init serpapi for language
     const serpApiTool = new SerpAPITool(
         {
             ...LANGUAGE_SERP_MAP[checkLanguage(content)],
@@ -93,7 +101,7 @@ router.post(async (req) => {
     const agent = await initializeAgentExecutorWithOptions([serpApiTool, new Calculator()], llm, {
         agentType: 'openai-functions',
         agentArgs: {
-            prefix: prompt,
+            prefix: `The UTC time is ${new Date().toString()}.`,
         },
         verbose: true,
         memory,
