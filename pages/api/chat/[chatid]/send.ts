@@ -4,7 +4,6 @@ import { NextFetchEvent, NextRequest } from 'next/server'
 import { LangChainStream, StreamingTextResponse } from 'ai'
 import { errorHandlerEdge } from '@/services/middlewares/edge'
 import { ChatOpenAI } from 'langchain/chat_models/openai'
-import { Calculator } from 'langchain/tools/calculator'
 import { AIMessage, HumanMessage, SystemMessage } from 'langchain/schema'
 import { initializeAgentExecutorWithOptions } from 'langchain/agents'
 import { BufferMemory, ChatMessageHistory } from 'langchain/memory'
@@ -98,7 +97,7 @@ router.post(async (req) => {
         memoryKey: 'chat_history',
         returnMessages: true,
     })
-    const agent = await initializeAgentExecutorWithOptions([serpApiTool, new Calculator()], llm, {
+    const agent = await initializeAgentExecutorWithOptions([serpApiTool], llm, {
         agentType: 'openai-functions',
         agentArgs: {
             prefix: `The UTC time is ${new Date().toString()}.`,
