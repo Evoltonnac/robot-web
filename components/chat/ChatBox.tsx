@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Button, OutlinedInput, Box, Grid } from '@mui/material'
+import { Button, TextField, Box, Grid } from '@mui/material'
 import { makeStyles } from 'tss-react/mui'
 import { Message } from '@/types/view/chat'
 import SendIcon from '@mui/icons-material/Send'
@@ -14,6 +14,23 @@ import _ from 'lodash'
 import { Preset } from '@/types/view/preset'
 
 const useStyles = makeStyles()((theme) => ({
+    container: {
+        height: '100%',
+        maxHeight: '100vh',
+        overflow: 'hidden auto',
+        position: 'relative',
+        '::-webkit-scrollbar': {
+            display: 'none',
+        },
+    },
+    contentArea: {
+        padding: `${theme.spacing(5)} ${theme.spacing(2)} ${theme.spacing(20)}`,
+        height: '100%',
+        overflow: 'hidden auto',
+        '::-webkit-scrollbar': {
+            display: 'none',
+        },
+    },
     footerCard: {
         width: '100%',
         padding: theme.spacing(1),
@@ -165,10 +182,10 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
     useEffect(() => {
         chatid &&
             clientRequest.get<Chat>(`/api/chat/${chatid}`).then(({ messages, preset }) => {
-                if (messages?.length) {
+                if (typeof messages?.length === 'number') {
                     setMessageList(messages)
                 }
-                preset && setPreset(preset)
+                setPreset(preset)
             })
         // abort send event stream when unmounted
         return handleAbort
@@ -178,16 +195,10 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
     window.addEventListener('beforeunload', handleAbort)
 
     return (
-        <Box
-            ref={elContainer}
-            sx={{
-                maxHeight: '100vh',
-                overflow: 'hidden auto',
-            }}
-        >
+        <Box className={classes.container}>
             {chatid ? (
                 <>
-                    <Box pt={5} pb={20} px={2}>
+                    <Box ref={elContainer} className={classes.contentArea}>
                         {messageList.map((item, index) => (
                             <MessageCard
                                 key={index}
@@ -210,16 +221,20 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
                         ) : null}
                     </Box>
                     {messageList.length <= 40 ? (
-                        <Box position="fixed" left={0} bottom={0} width="100%" px={2} pb={2} bgcolor="background.default">
+                        <Box position="absolute" left={0} bottom={0} width="100%" px={2} pb={2} bgcolor="background.default">
                             <Box className={classes.footerCard}>
                                 <Grid container spacing={2}>
                                     <Grid item xs>
-                                        <OutlinedInput
+                                        <TextField
                                             size="small"
                                             value={inputValue}
                                             fullWidth
+                                            placeholder="说些什么吧~"
+                                            multiline
+                                            minRows={1}
+                                            maxRows={3}
                                             onChange={handleInputChange}
-                                        ></OutlinedInput>
+                                        />
                                     </Grid>
                                     <Grid item width={100} alignSelf="stretch">
                                         <Button
