@@ -61,6 +61,7 @@ const useStyles = makeStyles()((theme) => {
         justifyContent: 'center',
         flexDirection: 'column',
         alignSelf: 'stretch',
+        cursor: 'pointer',
     }
     return {
         presetItem,
@@ -91,11 +92,10 @@ interface PresetListProps {
         deletePreset: (id: string) => Promise<Preset>
         addChat: (id?: string) => Promise<ChatListItem>
     }
-    onAttachPreset?: (id: string) => void
-    onDestroyPreset?: (id: string) => void
+    onNavigate?: (id: string) => void
 }
 
-export const PresetList: React.FC<PresetListProps> = ({ list, actions }) => {
+export const PresetList: React.FC<PresetListProps> = ({ list, actions, onNavigate }) => {
     const { classes } = useStyles()
 
     const curDeleting = useRef<string>('')
@@ -140,7 +140,11 @@ export const PresetList: React.FC<PresetListProps> = ({ list, actions }) => {
     const handleAddChatWithPreset = async (id: string) => {
         const newChat = await actions.addChat(id)
         setTimeout(() => {
-            Router.push(`/chat/${newChat._id}`)
+            if (onNavigate) {
+                onNavigate(newChat._id)
+            } else {
+                Router.push(`/chat/${newChat._id}`)
+            }
         }, 300)
     }
 

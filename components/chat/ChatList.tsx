@@ -7,6 +7,7 @@ import { makeStyles } from 'tss-react/mui'
 import Add from '@mui/icons-material/Add'
 import Delete from '@mui/icons-material/Delete'
 import BookmarkBorder from '@mui/icons-material/BookmarkBorder'
+import clsx from 'clsx'
 
 export const useChatList = (chatList: ChatListItem[]) => {
     const [list, setList] = useState<ChatListItem[]>(chatList)
@@ -46,9 +47,11 @@ const useStyles = makeStyles()((theme) => {
     const chatItem = {
         backgroundColor: theme.palette.background.paper,
         borderRadius: theme.shape.borderRadius,
-        '& + &': {
-            marginTop: theme.spacing(2),
-        },
+        cursor: 'pointer',
+        overflow: 'hidden',
+        marginTop: theme.spacing(2),
+        borderLeft: `4px solid transparent`,
+        borderRight: `4px solid transparent`,
     }
     return {
         chatItem,
@@ -59,6 +62,9 @@ const useStyles = makeStyles()((theme) => {
             borderColor: theme.palette.primary.main,
             backgroundColor: 'transparent',
             color: theme.palette.primary.main,
+        },
+        selectedChatItem: {
+            borderLeftColor: theme.palette.primary.main,
         },
         chatItemSecondary: {
             display: 'flex',
@@ -73,20 +79,24 @@ const useStyles = makeStyles()((theme) => {
 
 interface ChatListProps {
     list: ChatListItem[]
+    selectedId?: string
     actions: {
         addChat: () => Promise<ChatListItem>
         deleteChat: (id: string) => Promise<ChatListItem>
     }
-    onAttachChat?: (id: string) => void
-    onDestroyChat?: (id: string) => void
+    onNavigate?: (id: string) => void
 }
 
-export const ChatList: React.FC<ChatListProps> = ({ list, actions }) => {
+export const ChatList: React.FC<ChatListProps> = ({ list, actions, onNavigate, selectedId }) => {
     const { classes } = useStyles()
     const curDeleting = useRef<string>('')
 
     const handleGoChat = (id: string) => {
-        curDeleting.current !== id && Router.push(`/chat/${id}`)
+        if (onNavigate) {
+            onNavigate(id)
+        } else {
+            curDeleting.current !== id && Router.push(`/chat/${id}`)
+        }
     }
 
     const handleAddChat = async () => {
@@ -104,6 +114,9 @@ export const ChatList: React.FC<ChatListProps> = ({ list, actions }) => {
         try {
             await actions.deleteChat(id)
             curDeleting.current = ''
+            if (selectedId === id) {
+                onNavigate?.('')
+            }
         } catch (e) {
             curDeleting.current = ''
         }
@@ -126,10 +139,10 @@ export const ChatList: React.FC<ChatListProps> = ({ list, actions }) => {
             <Typography variant="h5" mb={2}>
                 进行中的聊天
             </Typography>
-            <List>
+            <List sx={{ mt: -2 }}>
                 {list.map((item) => (
                     <ListItem
-                        classes={{ container: classes.chatItem }}
+                        classes={{ container: clsx(classes.chatItem, { [classes.selectedChatItem]: selectedId === item._id }) }}
                         key={item._id}
                         onClick={() => {
                             handleGoChat(item._id)
