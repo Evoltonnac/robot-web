@@ -1,48 +1,44 @@
-import AWS from 'aws-sdk'
+import { S3Client, PutObjectCommand, PutObjectCommandInputType } from '@aws-sdk/client-s3'
 
-let s3: AWS.S3 | null = null
+let s3: S3Client | null = null
 
 const bucket = process.env.AWS_BUCKET_NAME || ''
 
-export function getS3(): AWS.S3 {
+export function getS3(): S3Client {
     if (s3) {
         return s3
     }
-    s3 = new AWS.S3({
-        region: 'ap-southeast-1',
-        credentials: new AWS.Credentials({
-            accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-        }),
-        signatureVersion: 'v4',
-    })
+    s3 = new S3Client({ region: 'ap-southeast-1' })
     return s3
 }
 
-export function uploadFile(filedata: AWS.S3.Body, filename: string, directory: string, mineType?: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-        getS3().upload(
-            {
-                Body: filedata,
-                Key: `${directory}/${filename}`,
-                Bucket: bucket,
-                ...(mineType && { ContentType: mineType }),
+export function uploadFile(
+    filedata: PutObjectCommandInputType['Body'],
+    filename: string,
+    directory: string,
+    mineType?: string
+): Promise<string> {
+    const command = new PutObjectCommand({
+        Bucket: bucket,
+        Key: `${directory}/${filename}`,
+        Body: filedata,
+        ...(mineType && { ContentType: mineType }),
+        CacheControl: 'max-age=31536000',
+    })
+    return getS3()
+        .send(command)
+        .then(
+            () => {
+                return Promise.resolve(`https://${bucket}/${directory}/${filename}`)
             },
-            (err, data) => {
-                if (err) {
-                    console.error(err)
-                    reject(err)
-                }
-                if (data) {
-                    resolve(data.Location)
-                }
+            (error) => {
+                console.error(error)
+                return Promise.reject(error)
             }
         )
-    })
 }
 
 export async function uploadImgFromUrl(url: string, directory: string): Promise<string> {
-    console.log(url)
     const filenameMatch = new URL(url).pathname.match(
         /[^\/]+\.(bmp|jpg|png|tif|gif|pcx|tga|exif|fpx|svg|psd|cdr|pcd|dxf|ufo|eps|ai|raw|WMF|webp|jpeg)/
     )
