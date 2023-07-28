@@ -7,8 +7,8 @@ import SwapHoriz from '@mui/icons-material/SwapHoriz'
 import { Box, Button } from '@mui/material'
 
 export default function Home() {
-    const { username } = useUser() || {}
-    if (username) {
+    const { user } = useUser() || {}
+    if (user?.username) {
         Router.replace('/chat')
     }
     const [isRegister, setIsRegister] = useState(false)

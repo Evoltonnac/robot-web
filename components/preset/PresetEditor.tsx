@@ -10,7 +10,6 @@ import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined'
 import TitleOutlined from '@mui/icons-material/TitleOutlined'
 import { AIAvatarInput } from '../common/AIAvatarInput'
 import _ from 'lodash'
-import { clientRequest } from '@/src/utils/request'
 import { upload } from '@/src/utils/upload'
 
 const schema = yup.object().shape({

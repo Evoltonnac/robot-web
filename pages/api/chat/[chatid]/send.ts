@@ -7,6 +7,7 @@ import { ChatOpenAI } from 'langchain/chat_models/openai'
 import { AIMessage, HumanMessage, SystemMessage } from 'langchain/schema'
 import { initializeAgentExecutorWithOptions } from 'langchain/agents'
 import { BufferMemory, ChatMessageHistory } from 'langchain/memory'
+import { ConversationChain } from 'langchain/chains'
 import { LANGUAGE_SERP_MAP, checkLanguage } from '@/utils/langchain'
 import { SerpAPITool } from '@/utils/langchain/serpApiTool'
 
@@ -43,7 +44,7 @@ const router = createEdgeRouter<NextRequest, NextFetchEvent>()
 
 router.post(async (req) => {
     const chatId = req.nextUrl.searchParams.get('chatid')
-    const message = (await req.json()).message
+    const { message, serpEnabled } = await req.json()
     const { role, type, content } = message
     if (!chatId) {
         throw new Error(JSON.stringify({ errno: 'A0401', errmsg: '聊天内容不存在', status: 404 }))
@@ -69,12 +70,18 @@ router.post(async (req) => {
             await storeFinalContent(text)
         },
     })
+
+    // chat gpt llm
     const llm = new ChatOpenAI({
         modelName: 'gpt-3.5-turbo-0613',
         maxTokens: 500,
         temperature: 0,
         streaming: true,
     })
+
+    // tools for langchain agent
+    const tools = []
+
     // init serpapi for language
     const serpApiTool = new SerpAPITool(
         {
@@ -85,32 +92,45 @@ router.post(async (req) => {
             headers: { authorization: req.headers.get('authorization') || '' },
         }
     )
-    const memory = new BufferMemory({
-        chatHistory: new ChatMessageHistory(
-            messageList
-                .slice(0, messageList.length - 1)
-                .map((m) =>
-                    m.role == 'system'
-                        ? new SystemMessage(m.content)
-                        : m.role == 'user'
-                        ? new HumanMessage(m.content)
-                        : new AIMessage(m.content)
-                )
-        ),
-        memoryKey: 'chat_history',
-        returnMessages: true,
-    })
-    const agent = await initializeAgentExecutorWithOptions([serpApiTool], llm, {
-        agentType: 'openai-functions',
-        agentArgs: {
-            prefix: `The UTC time is ${new Date().toString()}.`,
-        },
-        // verbose: true,
-        memory,
-    })
-    agent.call({ input: content }, [handlers]).catch((err) => {
-        console.error(err)
-    })
+    serpEnabled && tools.push(serpApiTool)
+
+    // chat history
+    const chatHistory = new ChatMessageHistory(
+        messageList
+            .slice(0, messageList.length - 1)
+            .map((m) =>
+                m.role == 'system'
+                    ? new SystemMessage(m.content)
+                    : m.role == 'user'
+                    ? new HumanMessage(m.content)
+                    : new AIMessage(m.content)
+            )
+    )
+
+    if (tools.length) {
+        // create langchain agent
+        const agent = await initializeAgentExecutorWithOptions(tools, llm, {
+            agentType: 'openai-functions',
+            agentArgs: {
+                prefix: `The UTC time is ${new Date().toString()}.`,
+            },
+            // verbose: true,
+            memory: new BufferMemory({
+                chatHistory,
+                memoryKey: 'chat_history',
+                returnMessages: true,
+            }),
+        })
+
+        agent.call({ input: content }, [handlers]).catch((err) => {
+            console.error(err)
+        })
+    } else {
+        const chain = new ConversationChain({ llm, memory: new BufferMemory({ chatHistory }) })
+        chain.call({ input: content }, [handlers]).catch((err) => {
+            console.error(err)
+        })
+    }
 
     let storePromise: Promise<ChatWithConfig | null> | undefined
 

@@ -1,3 +1,3 @@
-export interface User {
-    username: string
-}
+import * as UserModal from '../model/user'
+
+export type User = Omit<UserModal.User, 'password'>

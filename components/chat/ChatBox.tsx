@@ -13,6 +13,8 @@ import { MessageType } from '@/types/model/chat'
 import _ from 'lodash'
 import { Preset } from '@/types/view/preset'
 import { MAX_ROUNDS } from '@/utils/constant'
+import { useUser } from '../global/User'
+import ConfigPanel from '../user/ConfigPanel'
 
 const useStyles = makeStyles()((theme) => ({
     container: {
@@ -32,8 +34,13 @@ const useStyles = makeStyles()((theme) => ({
             display: 'none',
         },
     },
+    configButton: {
+        position: 'absolute',
+        top: theme.spacing(1),
+        right: theme.spacing(1),
+    },
     roundsChip: {
-        position: `absolute`,
+        position: 'absolute',
         top: `-${theme.spacing(1)}`,
         right: theme.spacing(2),
         transform: 'translateY(-100%)',
@@ -56,6 +63,7 @@ interface ChatBotProps {
 }
 
 const ChatBot: React.FC<ChatBotProps> = ({ chatid, updateChatItem }) => {
+    const { user } = useUser() || {}
     const { classes } = useStyles()
     const elContainer = useRef<HTMLDivElement>(null)
     const [isLoading, setIsLoading] = useState(false)
@@ -111,7 +119,10 @@ const ChatBot: React.FC<ChatBotProps> = ({ chatid, updateChatItem }) => {
                     'Content-Type': 'application/json',
                     ...getAuthorizationHeader(),
                 },
-                body: JSON.stringify({ message: selfMsg }),
+                body: JSON.stringify({
+                    message: selfMsg,
+                    serpEnabled: user?.config?.serpEnabled,
+                }),
                 signal: sendCtrl.current.signal,
             })
             if (!res.ok || !res.body) {
@@ -240,6 +251,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ chatid, updateChatItem }) => {
                             </Box>
                         ) : null}
                     </Box>
+                    <ConfigPanel className={classes.configButton}></ConfigPanel>
                     <Box position="absolute" left={0} bottom={0} width="100%" px={2} pb={2} bgcolor="background.default">
                         <Chip className={classes.roundsChip} label={`对话轮数${chatRounds}/${MAX_ROUNDS}`} color="primary" />
                         {chatRounds < MAX_ROUNDS ? (

@@ -89,7 +89,7 @@ const useStyles = makeStyles<MessageCardProps>()((theme, { message }) => {
 })
 
 const MessageCard: React.FC<MessageCardProps> = (props) => {
-    const user = useUser()
+    const { user } = useUser() || {}
     const { message, botAvatar, isLoading } = props
     const { role } = message
     const { classes } = useStyles(props)
