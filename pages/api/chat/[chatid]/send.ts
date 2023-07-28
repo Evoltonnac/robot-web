@@ -9,7 +9,6 @@ import { initializeAgentExecutorWithOptions } from 'langchain/agents'
 import { BufferMemory, ChatMessageHistory } from 'langchain/memory'
 import { LANGUAGE_SERP_MAP, checkLanguage } from '@/utils/langchain'
 import { SerpAPITool } from '@/utils/langchain/serpApiTool'
-import { ChatCompletionRequestMessage } from 'openai-edge/types/api'
 
 interface pushMessageOptions {
     chatId: string
@@ -33,7 +32,11 @@ const pushMessage = async (req: NextRequest, opt: pushMessageOptions): Promise<C
         },
         redirect: 'manual',
     })
-    return (await response.json()).data
+    const res = await response.json()
+    if (res.errno !== '00000' && res.data) {
+        throw new Error(JSON.stringify({ errno: res.errno, errmsg: res.errmsg || '发送消息失败' }))
+    }
+    return res.data
 }
 
 const router = createEdgeRouter<NextRequest, NextFetchEvent>()

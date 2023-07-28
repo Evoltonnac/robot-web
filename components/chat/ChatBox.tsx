@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
-import { Button, TextField, Box, Grid } from '@mui/material'
+import React, { useEffect, useRef, useState } from 'react'
+import { Button, TextField, Box, Grid, Chip } from '@mui/material'
 import { makeStyles } from 'tss-react/mui'
-import { Message } from '@/types/view/chat'
+import { ChatListItem, Message } from '@/types/view/chat'
 import SendIcon from '@mui/icons-material/Send'
 import DeleteOutlineRounded from '@mui/icons-material/DeleteOutlineRounded'
 import { DECODER } from '@/utils/shared'
@@ -12,6 +12,7 @@ import { Chat } from '@/types/view/chat'
 import { MessageType } from '@/types/model/chat'
 import _ from 'lodash'
 import { Preset } from '@/types/view/preset'
+import { MAX_ROUNDS } from '@/utils/constant'
 
 const useStyles = makeStyles()((theme) => ({
     container: {
@@ -31,6 +32,12 @@ const useStyles = makeStyles()((theme) => ({
             display: 'none',
         },
     },
+    roundsChip: {
+        position: `absolute`,
+        top: `-${theme.spacing(1)}`,
+        right: theme.spacing(2),
+        transform: 'translateY(-100%)',
+    },
     footerCard: {
         width: '100%',
         padding: theme.spacing(1),
@@ -43,7 +50,12 @@ const useStyles = makeStyles()((theme) => ({
     },
 }))
 
-const ChatBot = ({ chatid }: { chatid?: string }) => {
+interface ChatBotProps {
+    chatid?: string
+    updateChatItem?: (id: string, messagesInfo: ChatListItem['messagesInfo']) => void
+}
+
+const ChatBot: React.FC<ChatBotProps> = ({ chatid, updateChatItem }) => {
     const { classes } = useStyles()
     const elContainer = useRef<HTMLDivElement>(null)
     const [isLoading, setIsLoading] = useState(false)
@@ -177,6 +189,12 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
 
     useEffect(() => {
         scrollToBottom()
+        chatid &&
+            updateChatItem &&
+            updateChatItem(chatid, {
+                total: messageList.length,
+                first: messageList[0]?.content || '',
+            })
     }, [messageList])
 
     useEffect(() => {
@@ -194,6 +212,8 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
     // abort send event stream when close
     window.addEventListener('beforeunload', handleAbort)
 
+    // current chat rounds
+    const chatRounds = messageList.filter(({ role }) => role === 'assistant').length
     return (
         <Box className={classes.container}>
             {chatid ? (
@@ -210,18 +230,19 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
                         {messageList.length ? (
                             <Box textAlign="center">
                                 {isLoading ? null : (
-                                    // <Button onClick={handleAbort} color="error">
+                                    // <Button variant="outlined" onClick={handleAbort} color="error">
                                     //     停止响应
                                     // </Button>
-                                    <Button onClick={handleClear} color="error" endIcon={<DeleteOutlineRounded />}>
+                                    <Button variant="outlined" onClick={handleClear} color="error" endIcon={<DeleteOutlineRounded />}>
                                         清空此对话
                                     </Button>
                                 )}
                             </Box>
                         ) : null}
                     </Box>
-                    {messageList.length <= 40 ? (
-                        <Box position="absolute" left={0} bottom={0} width="100%" px={2} pb={2} bgcolor="background.default">
+                    <Box position="absolute" left={0} bottom={0} width="100%" px={2} pb={2} bgcolor="background.default">
+                        <Chip className={classes.roundsChip} label={`对话轮数${chatRounds}/${MAX_ROUNDS}`} color="primary" />
+                        {chatRounds < MAX_ROUNDS ? (
                             <Box className={classes.footerCard}>
                                 <Grid container spacing={2}>
                                     <Grid item xs>
@@ -249,8 +270,8 @@ const ChatBot = ({ chatid }: { chatid?: string }) => {
                                     </Grid>
                                 </Grid>
                             </Box>
-                        </Box>
-                    ) : null}
+                        ) : null}
+                    </Box>
                 </>
             ) : null}
         </Box>

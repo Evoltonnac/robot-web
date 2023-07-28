@@ -118,7 +118,7 @@ const Chat: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
                 {isWideScreen && (
                     <Box className={classes.rightSection}>
                         {chatId ? (
-                            <DynamicChatBox chatid={chatId} />
+                            <DynamicChatBox chatid={chatId} updateChatItem={cActions.updateChatItem} />
                         ) : (
                             <div>
                                 <p>点击左侧列表立即开始聊天吧</p>
