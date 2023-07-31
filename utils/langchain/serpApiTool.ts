@@ -91,7 +91,6 @@ export class SerpAPITool extends Tool {
             .filter(([_, value]) => value !== undefined)
             .map(([key, value]) => [key, `${value}`])
         const searchParams = new URLSearchParams(nonUndefinedParams)
-        console.log(`${baseUrl}?${searchParams}`)
         return `${baseUrl}?${searchParams}`
     }
 
