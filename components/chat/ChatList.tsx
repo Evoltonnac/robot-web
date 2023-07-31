@@ -34,11 +34,19 @@ export const useChatList = (chatList: ChatListItem[]) => {
             return deletedChat[0]
         })
     }
+    const updateChatItem = (id: string, messagesInfo: ChatListItem['messagesInfo']) => {
+        const updatedIdx = list.findIndex(({ _id }) => _id === id)
+        const newList = [...list]
+        newList[updatedIdx] = { ...newList[updatedIdx], messagesInfo }
+        setList(newList)
+        return newList[updatedIdx]
+    }
     return {
         list,
         actions: {
             addChat,
             deleteChat,
+            updateChatItem,
         },
     }
 }

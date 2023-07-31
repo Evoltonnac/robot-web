@@ -6,6 +6,7 @@ import { Types } from 'mongoose'
 import { tryOrBoom } from './middlewares/customRouter'
 import { ChatListItem } from '@/types/view/chat'
 import Preset from '@/models/preset'
+import { MAX_ROUNDS } from '@/utils/constant'
 
 const getChatById = tryOrBoom(
     async (userId: Types.ObjectId, chatId: string) => {
@@ -84,8 +85,14 @@ const clearChatById = tryOrBoom(
 
 // push messages to a chat
 const pushMessages = tryOrBoom(
-    async (userId: Types.ObjectId, chatId: string, messages: Message[]) => {
+    async (userId: Types.ObjectId, chatId: string, messages: Message[], maxRounds: number = MAX_ROUNDS) => {
         const chat = await getChatById(userId, chatId)
+        if (chat.messages.filter(({ role }) => role === 'assistant').length >= maxRounds) {
+            throw Boom.badRequest<ErrorData>('', {
+                errno: 'A0405',
+                errmsg: '超过最大对话轮数',
+            })
+        }
         chat.messages.push(...messages)
         await chat.save()
         return chat

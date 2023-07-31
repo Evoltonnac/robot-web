@@ -1,5 +1,5 @@
 import User from '@/models/user'
-import { User as UserType } from '@/types/model/user'
+import { UserConfig, User as UserType } from '@/types/model/user'
 import { Types } from 'mongoose'
 import _ from 'lodash'
 import Boom from '@hapi/boom'
@@ -50,6 +50,24 @@ const addUser = tryOrBoom(
     }
 )
 
+const editConfig = tryOrBoom(
+    async (userId: string, newConfig: UserConfig) => {
+        const user = await User.findById(userId)
+        if (!user) {
+            throw Boom.notFound<ErrorData>('', {
+                errno: 'A0201',
+                errmsg: '用户不存在',
+            })
+        }
+        // 合并新的config数据与原配置
+        return await user.set('config', { ...user.toObject().config, ...newConfig }).save()
+    },
+    {
+        errno: 'B0102',
+        errmsg: '修改用户配置失败',
+    }
+)
+
 // filter out sensitive info in userinfo
 function formatUserInfo(
     user: UserType & {
@@ -59,4 +77,4 @@ function formatUserInfo(
     return _.omit(user, ['password', '_id'])
 }
 
-export { getUserByName, addUser, formatUserInfo }
+export { getUserByName, addUser, editConfig, formatUserInfo }
