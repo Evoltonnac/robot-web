@@ -14,8 +14,8 @@ import { upload } from '@/src/utils/upload'
 
 const schema = yup.object().shape({
     avatar: yup.string(),
-    title: yup.string().max(8, '预设名太长').required('预设名不能为空'),
-    prompt: yup.string().max(1000, '提示词太长').required('提示词不能为空'),
+    title: yup.string().max(10, '预设名太长').required('预设名不能为空'),
+    prompt: yup.string().max(20000, '提示词太长').required('提示词不能为空'),
 })
 
 const useStyles = makeStyles<{ fullScreen: boolean }>()((theme, { fullScreen }) => ({
