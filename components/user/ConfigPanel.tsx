@@ -63,7 +63,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ className }) => {
                 onClose={handleClose}
             >
                 <Box className={classes.configPanel}>
-                    <Public />
+                    <Public color={!!config?.serpEnabled ? 'primary' : 'inherit'} />
                     <Switch
                         checked={!!config?.serpEnabled}
                         onChange={updateSerpEnabled}
