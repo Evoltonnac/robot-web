@@ -76,10 +76,16 @@ const useStyles = makeStyles()((theme) => {
         },
         presetAddItem: {
             ...presetItem,
-            border: '2px dashed',
+            minHeight: theme.spacing(16),
+            border: '1px dashed',
             borderColor: theme.palette.primary.main,
             backgroundColor: 'transparent',
             color: theme.palette.primary.main,
+            opacity: 0.6,
+            transition: 'all 0.2s',
+            '&:hover, &:active': {
+                opacity: 1,
+            },
         },
     }
 })
@@ -93,9 +99,11 @@ interface PresetListProps {
         addChat: (id?: string) => Promise<ChatListItem>
     }
     onNavigate?: (id: string) => void
+    maxShow?: number
+    gridSize?: number
 }
 
-export const PresetList: React.FC<PresetListProps> = ({ list, actions, onNavigate }) => {
+export const PresetList: React.FC<PresetListProps> = ({ list, actions, onNavigate, maxShow = 4, gridSize }) => {
     const { classes } = useStyles()
 
     const curDeleting = useRef<string>('')
@@ -148,22 +156,25 @@ export const PresetList: React.FC<PresetListProps> = ({ list, actions, onNavigat
         }, 300)
     }
 
-    // show first 4 presets
-    const showList = list.slice(0, 3)
-    // fill list with empty item if less than 4 presets
+    // show first several presets
+    const showList = list.slice(0, maxShow)
+    // fill list with empty item if less than maxshow presets
     const emptyList: number[] = []
-    for (let i = 0; i < 4 - showList.length; i++) {
-        emptyList.push(i)
+    showList.length < maxShow && emptyList.push(1)
+
+    // responsive list
+    const gridStyle = {
+        xs: gridSize || 6,
+        sm: gridSize || 4,
+        md: gridSize || 3,
+        lg: gridSize || 2,
     }
 
     return (
         <>
-            <Typography variant="h5" mb={2}>
-                我的预设
-            </Typography>
             <Grid container flexWrap="wrap" spacing={2}>
                 {showList.map((preset) => (
-                    <Grid item xs={6} key={preset._id}>
+                    <Grid item {...gridStyle} key={preset._id}>
                         <Paper
                             className={classes.presetItem}
                             elevation={0}
@@ -202,7 +213,7 @@ export const PresetList: React.FC<PresetListProps> = ({ list, actions, onNavigat
                     </Grid>
                 ))}
                 {emptyList.map((i, index) => (
-                    <Grid item xs={6} key={index}>
+                    <Grid item {...gridStyle} key={index}>
                         <Paper className={classes.presetAddItem} elevation={0} onClick={handleAddPreset}>
                             <Add></Add>
                         </Paper>

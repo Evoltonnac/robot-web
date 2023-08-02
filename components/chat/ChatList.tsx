@@ -1,4 +1,4 @@
-import { List, ListItem, ListItemText, IconButton, ListItemSecondaryAction, Typography, Box, Chip } from '@mui/material'
+import { List, ListItem, ListItemText, IconButton, ListItemSecondaryAction, Box, Chip } from '@mui/material'
 import { Chat, ChatListItem } from '@/types/view/chat'
 import Router from 'next/router'
 import { clientRequest } from '@/src/utils/request'
@@ -66,10 +66,15 @@ const useStyles = makeStyles()((theme) => {
         chatAddItem: {
             ...chatItem,
             marginTop: theme.spacing(2),
-            border: '2px dashed',
+            border: '1px dashed',
             borderColor: theme.palette.primary.main,
             backgroundColor: 'transparent',
             color: theme.palette.primary.main,
+            opacity: 0.6,
+            transition: 'all 0.2s',
+            '&:hover, &:active': {
+                opacity: 1,
+            },
         },
         selectedChatItem: {
             borderLeftColor: theme.palette.primary.main,
@@ -143,53 +148,48 @@ export const ChatList: React.FC<ChatListProps> = ({ list, actions, onNavigate, s
     }
 
     return (
-        <>
-            <Typography variant="h5" mb={2}>
-                进行中的聊天
-            </Typography>
-            <List sx={{ mt: -2 }}>
-                {list.map((item) => (
-                    <ListItem
-                        classes={{ container: clsx(classes.chatItem, { [classes.selectedChatItem]: selectedId === item._id }) }}
-                        key={item._id}
-                        onClick={() => {
-                            handleGoChat(item._id)
+        <List sx={{ mt: -2 }}>
+            {list.map((item) => (
+                <ListItem
+                    classes={{ container: clsx(classes.chatItem, { [classes.selectedChatItem]: selectedId === item._id }) }}
+                    key={item._id}
+                    onClick={() => {
+                        handleGoChat(item._id)
+                    }}
+                >
+                    <ListItemText
+                        primary={item.messagesInfo.total ? item.messagesInfo.first : '还没开始聊天，点击进入'}
+                        primaryTypographyProps={{
+                            noWrap: true,
                         }}
-                    >
-                        <ListItemText
-                            primary={item.messagesInfo.total ? item.messagesInfo.first : '还没开始聊天，点击进入'}
-                            primaryTypographyProps={{
-                                noWrap: true,
-                            }}
-                            secondary={<ChatItemSecondary chatItem={item} />}
-                            secondaryTypographyProps={{
-                                component: 'div',
-                            }}
-                        />
+                        secondary={<ChatItemSecondary chatItem={item} />}
+                        secondaryTypographyProps={{
+                            component: 'div',
+                        }}
+                    />
 
-                        <ListItemSecondaryAction>
-                            <IconButton
-                                edge="end"
-                                aria-label="delete"
-                                color="error"
-                                onClick={() => {
-                                    handleDeleteChat(item._id)
-                                }}
-                            >
-                                <Delete />
-                            </IconButton>
-                        </ListItemSecondaryAction>
-                    </ListItem>
-                ))}
-                <ListItem classes={{ container: classes.chatAddItem }} onClick={handleAddChat}>
-                    <ListItemText primary="开始新一轮聊天" />
                     <ListItemSecondaryAction>
-                        <IconButton edge="end" aria-label="add" color="primary">
-                            <Add />
+                        <IconButton
+                            edge="end"
+                            aria-label="delete"
+                            color="error"
+                            onClick={() => {
+                                handleDeleteChat(item._id)
+                            }}
+                        >
+                            <Delete />
                         </IconButton>
                     </ListItemSecondaryAction>
                 </ListItem>
-            </List>
-        </>
+            ))}
+            <ListItem classes={{ container: classes.chatAddItem }} onClick={handleAddChat}>
+                <ListItemText primary="开始新一轮聊天" />
+                <ListItemSecondaryAction>
+                    <IconButton edge="end" aria-label="add" color="primary">
+                        <Add />
+                    </IconButton>
+                </ListItemSecondaryAction>
+            </ListItem>
+        </List>
     )
 }
