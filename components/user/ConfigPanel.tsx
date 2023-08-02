@@ -14,6 +14,7 @@ const useStyles = makeStyles()((theme) => ({
     configPanelBtn: {
         opacity: '.6',
         backgroundColor: theme.palette.background.paper,
+        transition: 'all 0.2s',
         '&:hover, &:active': {
             opacity: '1',
         },
