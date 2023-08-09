@@ -15,7 +15,7 @@ import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import ArrowRight from '@mui/icons-material/ArrowRight'
 
-const DynamicChatBox = dynamic(() => import('@/components/chat/ChatBox'), {
+const DynamicChatBot = dynamic(() => import('@/components/chat/ChatBot'), {
     loading: () => <LinearProgress />,
 })
 
@@ -146,7 +146,7 @@ const Chat: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
                 {isWideScreen && (
                     <Box className={classes.rightSection}>
                         {chatId ? (
-                            <DynamicChatBox chatid={chatId} updateChatItem={cActions.updateChatItem} />
+                            <DynamicChatBot chatid={chatId} updateChatItem={cActions.updateChatItem} />
                         ) : (
                             <div>
                                 <p>点击左侧列表立即开始聊天吧</p>

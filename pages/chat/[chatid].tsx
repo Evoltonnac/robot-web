@@ -1,5 +1,5 @@
 import Head from 'next/head'
-import ChatBot from '@/components/chat/ChatBox'
+import ChatBot from '@/components/chat/ChatBot'
 import { useRouter } from 'next/router'
 import { Container } from '@mui/material'
 
