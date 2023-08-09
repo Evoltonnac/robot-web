@@ -11,54 +11,78 @@ import { getAuthorizationHeader } from '@/src/utils/auth'
 import { Chat } from '@/types/view/chat'
 import { MessageType } from '@/types/model/chat'
 import _ from 'lodash'
-import { Preset } from '@/types/view/preset'
 import { MAX_ROUNDS } from '@/utils/constant'
 import { useUser } from '../global/User'
 import ConfigPanel from '../user/ConfigPanel'
+import useSWR from 'swr'
 
 export const useChatBot = (chatid?: string) => {
+    const { data, mutate } = useSWR<Chat>(chatid ? `/api/chat/${chatid}` : null, clientRequest.get, {
+        revalidateIfStale: false,
+        revalidateOnFocus: false,
+    })
+    // store messageList locally for stream text update
     const [messageList, setMessageList] = useState<Message[]>([])
-    const [preset, setPreset] = useState<Preset>()
     useEffect(() => {
-        chatid &&
-            clientRequest.get<Chat>(`/api/chat/${chatid}`).then(({ messages, preset }) => {
-                if (typeof messages?.length === 'number') {
-                    setMessageList(messages)
-                }
-                setPreset(preset)
-            })
-    }, [chatid])
-    const updateMessage = (msg: Message, index?: number) => {
-        setMessageList((prevState) => {
-            const length = prevState.length
-            if (typeof index !== 'number' || index === length) {
-                return [...prevState, msg]
-            } else if (index >= 0 && index < length) {
-                prevState.splice(index, 1, msg)
-                return [...prevState]
+        data && setMessageList([...data?.messages] || [])
+    }, [data])
+
+    // get realtime chatid to avoid update wrong chat
+    const currentChatid = useRef<string>(chatid || '')
+    // force revalidata if chat should update
+    const shouldUpdateChats = useRef<Map<string, boolean>>(new Map())
+    useEffect(() => {
+        if (chatid) {
+            currentChatid.current = chatid
+            if (shouldUpdateChats.current.get(chatid)) {
+                mutate()
+                shouldUpdateChats.current.set(chatid, false)
             }
-            return prevState
-        })
+        }
+    }, [chatid])
+
+    const updateMessage = (msg: Message, index?: number) => {
+        // update if target chat is current chat
+        if (currentChatid.current === chatid) {
+            setMessageList((prevState) => {
+                const length = prevState.length
+                if (typeof index !== 'number' || index === length) {
+                    return [...prevState, msg]
+                } else if (index >= 0 && index < length) {
+                    prevState.splice(index, 1, msg)
+                    return [...prevState]
+                }
+                return prevState
+            })
+        }
+        // mark the chat as shouldupdate
+        chatid && shouldUpdateChats.current.set(chatid, true)
     }
 
     const removeMessage = (index: number) => {
-        setMessageList((prevState) => {
-            const length = prevState.length
-            if (index >= 0 && index < length) {
-                prevState.splice(index, 1)
-                return [...prevState]
-            }
-            return prevState
-        })
+        // update if target chat is current chat
+        if (currentChatid.current === chatid) {
+            setMessageList((prevState) => {
+                const length = prevState.length
+                if (index >= 0 && index < length) {
+                    prevState.splice(index, 1)
+                    return [...prevState]
+                }
+                return prevState
+            })
+        }
+        // mark the chat as shouldupdate
+        chatid && shouldUpdateChats.current.set(chatid, true)
     }
 
     const clearMessage = () => {
         setMessageList([])
+        mutate((data) => (data ? { ...data, messages: [] } : ({} as Chat)), { revalidate: false })
     }
 
     return {
         messageList,
-        preset,
+        preset: data?.preset,
         updateMessage,
         removeMessage,
         clearMessage,
@@ -158,6 +182,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ chatid, updateChatItem }) => {
 
                 while (true) {
                     const { done, value } = await reader.read()
+                    // stream done
                     if (done) {
                         break
                     }
@@ -250,7 +275,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ chatid, updateChatItem }) => {
                     <Box ref={elContainer} className={classes.contentArea}>
                         {messageList.map((item, index) => (
                             <MessageCard
-                                key={index}
+                                key={index + item._id}
                                 message={item}
                                 botAvatar={preset?.avatar}
                                 isLoading={isLoading && index === messageList.length - 1}
