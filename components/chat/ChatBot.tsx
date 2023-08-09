@@ -16,6 +16,55 @@ import { MAX_ROUNDS } from '@/utils/constant'
 import { useUser } from '../global/User'
 import ConfigPanel from '../user/ConfigPanel'
 
+export const useChatBot = (chatid?: string) => {
+    const [messageList, setMessageList] = useState<Message[]>([])
+    const [preset, setPreset] = useState<Preset>()
+    useEffect(() => {
+        chatid &&
+            clientRequest.get<Chat>(`/api/chat/${chatid}`).then(({ messages, preset }) => {
+                if (typeof messages?.length === 'number') {
+                    setMessageList(messages)
+                }
+                setPreset(preset)
+            })
+    }, [chatid])
+    const updateMessage = (msg: Message, index?: number) => {
+        setMessageList((prevState) => {
+            const length = prevState.length
+            if (typeof index !== 'number' || index === length) {
+                return [...prevState, msg]
+            } else if (index >= 0 && index < length) {
+                prevState.splice(index, 1, msg)
+                return [...prevState]
+            }
+            return prevState
+        })
+    }
+
+    const removeMessage = (index: number) => {
+        setMessageList((prevState) => {
+            const length = prevState.length
+            if (index >= 0 && index < length) {
+                prevState.splice(index, 1)
+                return [...prevState]
+            }
+            return prevState
+        })
+    }
+
+    const clearMessage = () => {
+        setMessageList([])
+    }
+
+    return {
+        messageList,
+        preset,
+        updateMessage,
+        removeMessage,
+        clearMessage,
+    }
+}
+
 const useStyles = makeStyles()((theme) => ({
     container: {
         height: '100%',
@@ -66,39 +115,15 @@ const ChatBot: React.FC<ChatBotProps> = ({ chatid, updateChatItem }) => {
     const { user } = useUser() || {}
     const { classes } = useStyles()
     const elContainer = useRef<HTMLDivElement>(null)
+
+    const { messageList, preset, updateMessage, removeMessage, clearMessage } = useChatBot(chatid)
     const [isLoading, setIsLoading] = useState(false)
     const [inputValue, setInputValue] = useState<string>('')
-    const [messageList, setMessageList] = useState<Message[]>([])
-    const [preset, setPreset] = useState<Preset>()
     const isSubmitting = useRef<boolean>(false)
     const sendCtrl = useRef<AbortController | null>()
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setInputValue(e.target.value)
-    }
-
-    const updateMessage = (msg: Message, index?: number) => {
-        setMessageList((prevState) => {
-            const length = prevState.length
-            if (typeof index !== 'number' || index === length) {
-                return [...prevState, msg]
-            } else if (index >= 0 && index < length) {
-                prevState.splice(index, 1, msg)
-                return [...prevState]
-            }
-            return prevState
-        })
-    }
-
-    const removeMessage = (index: number) => {
-        setMessageList((prevState) => {
-            const length = prevState.length
-            if (index >= 0 && index < length) {
-                prevState.splice(index, 1)
-                return [...prevState]
-            }
-            return prevState
-        })
     }
 
     // send msg to api and receive stream
@@ -179,7 +204,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ chatid, updateChatItem }) => {
         clientRequest
             .post(`/api/chat/${chatid}/clear`)
             .then(() => {
-                setMessageList([])
+                clearMessage()
             })
             .finally(() => {
                 isSubmitting.current = false
@@ -209,16 +234,9 @@ const ChatBot: React.FC<ChatBotProps> = ({ chatid, updateChatItem }) => {
     }, [messageList])
 
     useEffect(() => {
-        chatid &&
-            clientRequest.get<Chat>(`/api/chat/${chatid}`).then(({ messages, preset }) => {
-                if (typeof messages?.length === 'number') {
-                    setMessageList(messages)
-                }
-                setPreset(preset)
-            })
         // abort send event stream when unmounted
         return handleAbort
-    }, [chatid])
+    }, [])
 
     // abort send event stream when close
     window.addEventListener('beforeunload', handleAbort)
