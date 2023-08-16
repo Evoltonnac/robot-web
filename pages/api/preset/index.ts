@@ -17,8 +17,8 @@ router
     })
     .post(async (req, res) => {
         const { _id } = req.currentUser
-        const { avatar, title, prompt } = req.body
-        const newPreset = (await addPreset(_id, { avatar, title, prompt })).toObject()
+        const { avatar, title, prompt, temperature } = req.body
+        const newPreset = (await addPreset(_id, { avatar, title, prompt, temperature })).toObject()
         res.status(200).json(newPreset)
         res.end()
     })

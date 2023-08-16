@@ -1,5 +1,5 @@
 import { Preset } from '@/types/view/preset'
-import { Dialog, Grid, Button, TextField, useMediaQuery, Box, Typography } from '@mui/material'
+import { Dialog, Grid, Button, TextField, useMediaQuery, Box, Typography, Tooltip } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
@@ -8,14 +8,17 @@ import * as yup from 'yup'
 import { makeStyles } from 'tss-react/mui'
 import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined'
 import TitleOutlined from '@mui/icons-material/TitleOutlined'
+import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment'
 import { AIAvatarInput } from '../common/AIAvatarInput'
 import _ from 'lodash'
 import { upload } from '@/src/utils/upload'
+import TemperatureSlider from '../common/TemperatureSlider'
 
 const schema = yup.object().shape({
     avatar: yup.string(),
     title: yup.string().max(10, '预设名太长').required('预设名不能为空'),
     prompt: yup.string().max(20000, '提示词太长').required('提示词不能为空'),
+    temperature: yup.number(),
 })
 
 const useStyles = makeStyles<{ fullScreen: boolean }>()((theme, { fullScreen }) => ({
@@ -32,7 +35,7 @@ const useStyles = makeStyles<{ fullScreen: boolean }>()((theme, { fullScreen }) 
     label: {
         marginTop: '14px',
     },
-    textField: {
+    inputField: {
         width: '80%',
     },
     buttonsField: {
@@ -42,6 +45,10 @@ const useStyles = makeStyles<{ fullScreen: boolean }>()((theme, { fullScreen }) 
             left: 0,
             width: '100%',
         }),
+    },
+    temperatureSlider: {
+        width: 'calc( 100% - 30px )',
+        margin: '7px 15px 15px',
     },
 }))
 
@@ -71,8 +78,8 @@ export const PresetEditor: React.FC<PresetEditorProps> = ({ open, preset, onSubm
 
     useEffect(() => {
         if (open) {
-            const { avatar, title, prompt } = preset || {}
-            reset({ avatar, title, prompt })
+            const { avatar, title, prompt, temperature = 0 } = preset || {}
+            reset({ avatar, title, prompt, temperature })
         }
     }, [open])
 
@@ -126,7 +133,7 @@ export const PresetEditor: React.FC<PresetEditorProps> = ({ open, preset, onSubm
                     <Grid item>
                         <TitleOutlined className={classes.label} />
                     </Grid>
-                    <Grid item className={classes.textField}>
+                    <Grid item className={classes.inputField}>
                         <TextField
                             {...register('title')}
                             id="title-input"
@@ -142,7 +149,7 @@ export const PresetEditor: React.FC<PresetEditorProps> = ({ open, preset, onSubm
                     <Grid item>
                         <DescriptionOutlined className={classes.label} />
                     </Grid>
-                    <Grid item className={classes.textField}>
+                    <Grid item className={classes.inputField}>
                         <TextField
                             {...register('prompt')}
                             id="prompt-textarea"
@@ -155,6 +162,32 @@ export const PresetEditor: React.FC<PresetEditorProps> = ({ open, preset, onSubm
                             error={!!errors.prompt?.message}
                             helperText={errors.prompt?.message}
                         />
+                    </Grid>
+                </Grid>
+                {/* temperature slider section */}
+                <Grid container spacing={2} justifyContent="center" mb={2}>
+                    <Grid item>
+                        <Tooltip title="温度(决定AI回答的灵活程度)" arrow placement="bottom-start">
+                            <LocalFireDepartmentIcon className={classes.label} />
+                        </Tooltip>
+                    </Grid>
+                    <Grid item className={classes.inputField}>
+                        <Controller
+                            control={control}
+                            name="temperature"
+                            render={({ field: { value, onChange } }) => (
+                                <TemperatureSlider
+                                    value={value}
+                                    onChange={(_, val) => onChange(Array.isArray(val) ? val[0] : val)}
+                                    id="temperature-slider"
+                                    className={classes.temperatureSlider}
+                                    min={0}
+                                    max={2}
+                                    step={0.1}
+                                    valueLabelDisplay="auto"
+                                />
+                            )}
+                        ></Controller>
                     </Grid>
                 </Grid>
                 <Grid container className={classes.buttonsField} spacing={2} justifyContent="center">

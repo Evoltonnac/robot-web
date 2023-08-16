@@ -6,7 +6,7 @@ import { clientRequest, pureRequest } from '@/src/utils/request'
 interface UserContextType {
     user?: User
     action: {
-        updateConfig: (config: User['config']) => void
+        updateConfig: (config: Partial<User['config']>) => void
     }
 }
 
@@ -27,7 +27,7 @@ export const UserProvider: React.FC<FCProps> = ({ children }) => {
 
     // update user config
     const isUpdating = useRef(false)
-    const updateConfig = useCallback((config: User['config']) => {
+    const updateConfig = useCallback((config: Partial<User['config']>) => {
         if (isUpdating.current) {
             return
         }

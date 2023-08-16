@@ -6,4 +6,5 @@ export interface User {
 
 export interface UserConfig {
     serpEnabled: 0 | 1
+    temperature: number
 }

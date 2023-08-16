@@ -38,14 +38,14 @@ router
     .patch(authMiddleware, async (req, res) => {
         const { _id } = req.currentUser
         const { presetid } = req.query
-        const { avatar, title, prompt } = req.body
+        const { avatar, title, prompt, temperature } = req.body
         if (!presetid) {
             throw Boom.notFound<ErrorData>('no presetid', {
                 errno: 'A0501',
                 errmsg: '预设不存在',
             })
         }
-        await updatePresetById(_id, presetid.toString(), { avatar, title, prompt })
+        await updatePresetById(_id, presetid.toString(), { avatar, title, prompt, temperature })
         res.status(200).json('success')
         res.end()
     })
