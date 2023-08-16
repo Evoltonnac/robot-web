@@ -5,4 +5,5 @@ export interface Preset {
     title: string
     prompt: string
     avatar: string
+    temperature: number
 }

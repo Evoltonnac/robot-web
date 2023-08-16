@@ -11,6 +11,10 @@ const ConfigSchema = new Schema(
             get: _.toNumber,
             set: (v: unknown) => !!v,
         },
+        temperature: {
+            type: Number,
+            default: 0.7,
+        },
     },
     {
         id: false,

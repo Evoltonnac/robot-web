@@ -20,6 +20,10 @@ const PresetSchema = new Schema({
         type: String,
         require: true,
     },
+    temperature: {
+        type: Number,
+        require: true,
+    },
 })
 
 const Preset: Model<PresetType> = mongoose.models.Preset || mongoose.model('Preset', PresetSchema)

@@ -1,10 +1,16 @@
 import { Box, IconButton, Popover, Switch } from '@mui/material'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Settings from '@mui/icons-material/Settings'
 import Public from '@mui/icons-material/Public'
+import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment'
 import { useUser } from '../global/User'
 import { makeStyles } from 'tss-react/mui'
 import clsx from 'clsx'
+import { linearHexColor } from '@/src/utils/calculator'
+import TemperatureSlider from '../common/TemperatureSlider'
+import { blue, red } from '@mui/material/colors'
+import { UserConfig } from '@/types/model/user'
+import { debounce } from 'lodash'
 
 interface ConfigPanelProps {
     className?: string
@@ -21,8 +27,14 @@ const useStyles = makeStyles()((theme) => ({
     },
     configPanel: {
         padding: theme.spacing(1),
+    },
+    configField: {
         display: 'flex',
         alignItems: 'center',
+    },
+    slider: {
+        width: '100px',
+        display: 'block',
     },
 }))
 
@@ -35,13 +47,27 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ className }) => {
     const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
         setAnchorEl(event.currentTarget)
     }
-
     const handleClose = () => {
         setAnchorEl(null)
     }
 
-    const updateSerpEnabled = async (e: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
-        await action?.updateConfig({ serpEnabled: checked ? 1 : 0 })
+    const [userConfig, setUserConfig] = useState<UserConfig>({ serpEnabled: 0, temperature: 0 })
+
+    useEffect(() => {
+        config && setUserConfig(config)
+    }, [config])
+
+    // debounce update
+    const updateConfig = useRef(debounce((config) => action?.updateConfig(config), 500, { leading: false }))
+
+    const updateSerpEnabled = (e: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
+        const serpEnabled = checked ? 1 : 0
+        setUserConfig((state) => ({ ...state, serpEnabled }))
+        updateConfig.current({ ...userConfig, serpEnabled })
+    }
+    const updateTemperature = (value: number) => {
+        setUserConfig((state) => ({ ...state, temperature: value }))
+        updateConfig.current({ ...userConfig, temperature: value })
     }
 
     return (
@@ -64,14 +90,30 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ className }) => {
                 onClose={handleClose}
             >
                 <Box className={classes.configPanel}>
-                    <Public color={!!config?.serpEnabled ? 'primary' : 'inherit'} />
-                    <Switch
-                        checked={!!config?.serpEnabled}
-                        onChange={updateSerpEnabled}
-                        color="primary"
-                        name="serpChecked"
-                        inputProps={{ 'aria-label': 'serpEnabled checkbox' }}
-                    />
+                    <Box className={classes.configField}>
+                        <Public color={!!userConfig?.serpEnabled ? 'primary' : 'inherit'} />
+                        <Switch
+                            checked={!!userConfig?.serpEnabled}
+                            onChange={updateSerpEnabled}
+                            color="primary"
+                            name="serpChecked"
+                            inputProps={{ 'aria-label': 'serpEnabled checkbox' }}
+                        />
+                    </Box>
+                    <Box className={classes.configField}>
+                        <LocalFireDepartmentIcon htmlColor={linearHexColor(blue[300], red[300], (userConfig?.temperature || 0) / 2)} />
+                        <Box px={1.5}>
+                            <TemperatureSlider
+                                className={classes.slider}
+                                value={userConfig?.temperature}
+                                onChange={(_, val) => updateTemperature(Array.isArray(val) ? val[0] : val)}
+                                min={0}
+                                max={2}
+                                step={0.1}
+                                valueLabelDisplay="auto"
+                            />
+                        </Box>
+                    </Box>
                 </Box>
             </Popover>
         </>

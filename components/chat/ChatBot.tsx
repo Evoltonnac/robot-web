@@ -162,6 +162,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ chatid, updateChatItem }) => {
                 _id: '' + Date.now(),
             }
             updateMessage(newMessage, index)
+            const { temperature, serpEnabled } = user?.config || {}
             const res = await fetch(`/api/chat/${chatid}/send`, {
                 method: 'POST',
                 headers: {
@@ -170,7 +171,8 @@ const ChatBot: React.FC<ChatBotProps> = ({ chatid, updateChatItem }) => {
                 },
                 body: JSON.stringify({
                     message: selfMsg,
-                    serpEnabled: user?.config?.serpEnabled,
+                    temperature,
+                    serpEnabled,
                 }),
                 signal: sendCtrl.current.signal,
             })
