@@ -44,7 +44,7 @@ const router = createEdgeRouter<NextRequest, NextFetchEvent>()
 
 router.post(async (req) => {
     const chatId = req.nextUrl.searchParams.get('chatid')
-    const { message, serpEnabled } = await req.json()
+    const { message, serpEnabled, temperature = 0 } = await req.json()
     const { role, type, content } = message
     if (!chatId) {
         throw new Error(JSON.stringify({ errno: 'A0401', errmsg: '聊天内容不存在', status: 404 }))
@@ -75,7 +75,8 @@ router.post(async (req) => {
     const llm = new ChatOpenAI({
         modelName: 'gpt-3.5-turbo-0613',
         maxTokens: 500,
-        temperature: 0,
+        // if preset exists, use preset temperature first
+        temperature: chatData.preset ? chatData.preset.temperature : temperature,
         streaming: true,
     })
 
