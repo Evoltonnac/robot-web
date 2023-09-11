@@ -6,6 +6,7 @@ import { clientRequest, pureRequest } from '@/src/utils/request'
 interface UserContextType {
     user?: User
     action: {
+        getUserInfo: () => void
         updateConfig: (config: Partial<User['config']>) => void
     }
 }
@@ -20,10 +21,14 @@ export const UserProvider: React.FC<FCProps> = ({ children }) => {
     // get userinfo
     const [userData, setUserData] = useState<User>()
     useEffect(() => {
+        getUserInfo()
+    }, [])
+
+    const getUserInfo = () => {
         pureRequest.get<User>('/api/user').then((data) => {
             setUserData(data)
         })
-    }, [])
+    }
 
     // update user config
     const isUpdating = useRef(false)
@@ -46,6 +51,7 @@ export const UserProvider: React.FC<FCProps> = ({ children }) => {
         () => ({
             user: userData,
             action: {
+                getUserInfo,
                 updateConfig,
             },
         }),

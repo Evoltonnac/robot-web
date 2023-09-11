@@ -3,6 +3,7 @@ import { Button, TextField, Grid } from '@mui/material'
 import { useState } from 'react'
 import Router from 'next/router'
 import { useNotification } from '@/src/hooks/useNotification'
+import { useUser } from '../global/User'
 
 interface LoginProps {
     isRegister?: boolean
@@ -10,6 +11,9 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ isRegister }) => {
     const sendNotification = useNotification()
+
+    const { action } = useUser() || {}
+
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
     const [repeatPassword, setRepeatPassword] = useState('')
@@ -39,10 +43,12 @@ const Login: React.FC<LoginProps> = ({ isRegister }) => {
                     return
                 }
                 clientRequest.post('/api/user', { username, password }).then(() => {
+                    action?.getUserInfo()
                     Router.replace('/chat')
                 })
             } else {
                 clientRequest.post('/api/user/login', { username, password }).then(() => {
+                    action?.getUserInfo()
                     Router.replace('/chat')
                 })
             }
@@ -50,7 +56,7 @@ const Login: React.FC<LoginProps> = ({ isRegister }) => {
     }
 
     return (
-        <Grid p={5} container spacing={2} direction="column" alignItems="center">
+        <Grid container spacing={2} direction="column" alignItems="center">
             <Grid item>
                 <TextField size="small" id="username" label="用户名" variant="outlined" value={username} onChange={handleUsernameChange} />
             </Grid>
@@ -82,8 +88,8 @@ const Login: React.FC<LoginProps> = ({ isRegister }) => {
                     ) : null}
                 </>
             ) : null}
-            <Grid item>
-                <Button variant="contained" onClick={handleSubmit}>
+            <Grid item width="100%" mt={1}>
+                <Button variant="contained" fullWidth onClick={handleSubmit}>
                     {stage === 0 ? '下一步' : '一键登录'}
                 </Button>
             </Grid>
