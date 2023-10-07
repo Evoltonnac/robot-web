@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { User } from '@/types/view/user'
 import { FCProps } from '@/types/view/common'
 import { clientRequest, pureRequest } from '@/src/utils/request'
+import { throttle } from 'lodash'
 
 interface UserContextType {
     user?: User
@@ -20,15 +21,25 @@ export const useUser = () => {
 export const UserProvider: React.FC<FCProps> = ({ children }) => {
     // get userinfo
     const [userData, setUserData] = useState<User>()
-    useEffect(() => {
-        getUserInfo()
-    }, [])
 
     const getUserInfo = () => {
         pureRequest.get<User>('/api/user').then((data) => {
             setUserData(data)
         })
     }
+    // request onshow and try to warm-up instance
+    const getUserInfoThrottle = useRef(throttle(getUserInfo, 60000))
+    const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+            getUserInfoThrottle.current()
+        }
+    }
+    useEffect(() => {
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange)
+        }
+    }, [])
 
     // update user config
     const isUpdating = useRef(false)
@@ -57,5 +68,6 @@ export const UserProvider: React.FC<FCProps> = ({ children }) => {
         }),
         [updateConfig, userData]
     )
+
     return <UserContext.Provider value={userContextObj}>{children}</UserContext.Provider>
 }
