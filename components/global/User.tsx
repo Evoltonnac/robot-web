@@ -35,6 +35,7 @@ export const UserProvider: React.FC<FCProps> = ({ children }) => {
         }
     }
     useEffect(() => {
+        getUserInfoThrottle.current()
         document.addEventListener('visibilitychange', handleVisibilityChange)
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange)
