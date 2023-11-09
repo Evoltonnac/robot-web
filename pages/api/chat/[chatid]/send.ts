@@ -73,7 +73,7 @@ router.post(async (req) => {
 
     // chat gpt llm
     const llm = new ChatOpenAI({
-        modelName: 'gpt-4',
+        modelName: 'gpt-4-1106-preview',
         maxTokens: 500,
         // if preset exists, use preset temperature first
         temperature: chatData.preset ? chatData.preset.temperature : temperature,
