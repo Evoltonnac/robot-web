@@ -1,4 +1,6 @@
 import { Tool } from 'langchain/tools'
+import { buildUrl } from '../shared'
+import { Tools } from '@/types/server/langchain'
 
 /**
  * This does not use the `serpapi` package because it appears to cause issues
@@ -63,7 +65,10 @@ export interface SerpAPIParameters extends BaseParameters {
     hl?: string
 }
 
-type UrlParameters = Record<string, string | number | boolean | undefined | null>
+const promptTemplate =
+    'Search results above consist of multiple sets of ranks and descriptions, and the description may be accompanied by a link corresponding to the result.' +
+    "The link should be embedded in the result text using Markdown's reference-style link syntax." +
+    'You can use browser tool to get detail of the most relevant result link.'
 
 export class SerpAPITool extends Tool {
     toJSON() {
@@ -84,26 +89,19 @@ export class SerpAPITool extends Tool {
         this.init = init
     }
 
-    name = 'search'
-
-    protected buildUrl<P extends UrlParameters>(parameters: P, baseUrl: string): string {
-        const nonUndefinedParams: [string, string][] = Object.entries(parameters)
-            .filter(([_, value]) => value !== undefined)
-            .map(([key, value]) => [key, `${value}`])
-        const searchParams = new URLSearchParams(nonUndefinedParams)
-        return `${baseUrl}?${searchParams}`
-    }
+    name = Tools.SerpAPITool
 
     protected parseOrganicResults(organic_results: any): string {
-        const results: Array<{ r: number; d: string }> = []
+        const results: Array<{ r: number; d: string; l: string }> = []
         // get result and rank from one result object
         const parseSingleResult = (cur: any, idx: number) => {
-            const { description, title, global_rank } = cur
+            const { description, title, global_rank, link } = cur
             const rank = idx + 1
             if (description || title) {
                 results.push({
                     r: global_rank || rank,
                     d: description || title,
+                    l: link || '',
                 })
             }
         }
@@ -124,17 +122,16 @@ export class SerpAPITool extends Tool {
             return results
                 .sort(({ r: ra }, { r: rb }) => ra - rb)
                 .reduce((pre, cur, idx) => {
-                    return pre + `${pre ? '\n' : ''}${idx + 1}.${cur.d}`
+                    return pre + `${pre ? '\n' : ''}${idx + 1}.${cur.d}${cur.l ? '[link](' + cur.l + ')' : ''}`
                 }, '')
         }
-        return 'No good search result found'
+        return ''
     }
 
-    /** @ignore */
     async _call(input: string) {
         const { timeout, ...params } = this.params
         const resp = await fetch(
-            this.buildUrl(
+            buildUrl(
                 {
                     ...params,
                     q: input,
@@ -175,7 +172,8 @@ export class SerpAPITool extends Tool {
         }
 
         if (data.organic?.length) {
-            return this.parseOrganicResults(data.organic)
+            const result = this.parseOrganicResults(data.organic)
+            return result ? `${result}\n\n${promptTemplate}` : 'No good search result found'
         }
 
         return 'No good search result found'

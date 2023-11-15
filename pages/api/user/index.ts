@@ -27,7 +27,7 @@ router
     .patch(authMiddleware, async (req, res) => {
         const { config } = req.body
         const user = req.currentUser
-        const editedConfig = _.pick(config, ['serpEnabled', 'temperature'])
+        const editedConfig = _.pick(config, ['serpEnabled', 'temperature', 'activePlugins'])
         const editedUser = (await editConfig(user._id.toString(), editedConfig)).toObject()
         res.status(200).json(formatUserInfo(editedUser))
         res.end()
