@@ -8,8 +8,12 @@ import { AIMessage, HumanMessage, SystemMessage } from 'langchain/schema'
 import { initializeAgentExecutorWithOptions } from 'langchain/agents'
 import { BufferMemory, ChatMessageHistory } from 'langchain/memory'
 import { ConversationChain } from 'langchain/chains'
-import { LANGUAGE_SERP_MAP, checkLanguage } from '@/utils/langchain'
+import { LANGUAGE_SERP_MAP, checkLanguage, getPlugins } from '@/utils/langchain'
 import { SerpAPITool } from '@/utils/langchain/serpApiTool'
+import { ImageSearch } from '@/utils/langchain/imageSearch'
+import { Tool } from 'langchain/tools'
+import { Calculator } from '@/utils/langchain/calculator'
+import { BrowserPilot } from '@/utils/langchain/browserPilot'
 
 interface pushMessageOptions {
     chatId: string
@@ -44,7 +48,7 @@ const router = createEdgeRouter<NextRequest, NextFetchEvent>()
 
 router.post(async (req) => {
     const chatId = req.nextUrl.searchParams.get('chatid')
-    const { message, serpEnabled, temperature = 0 } = await req.json()
+    const { message, serpEnabled, temperature = 0, activePlugins } = await req.json()
     const { role, type, content } = message
     if (!chatId) {
         throw new Error(JSON.stringify({ errno: 'A0401', errmsg: '聊天内容不存在', status: 404 }))
@@ -81,7 +85,7 @@ router.post(async (req) => {
     })
 
     // tools for langchain agent
-    const tools = []
+    const tools: Tool[] = getPlugins([new ImageSearch()], activePlugins)
 
     // init serpapi for language
     const serpApiTool = new SerpAPITool(
@@ -93,7 +97,7 @@ router.post(async (req) => {
             headers: { authorization: req.headers.get('authorization') || '' },
         }
     )
-    serpEnabled && tools.push(serpApiTool)
+    serpEnabled && tools.push(serpApiTool, new BrowserPilot(), new Calculator())
 
     // chat history
     const chatHistory = new ChatMessageHistory(

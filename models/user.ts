@@ -15,6 +15,10 @@ const ConfigSchema = new Schema(
             type: Number,
             default: 0.7,
         },
+        activePlugins: {
+            type: Array,
+            default: [],
+        },
     },
     {
         id: false,

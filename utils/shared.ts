@@ -23,3 +23,14 @@ export class SharedCookie {
     }
 }
 export const sharedCookie = new SharedCookie()
+
+// build url with parameters
+type UrlParameters = Record<string, string | number | boolean | undefined | null>
+
+export function buildUrl<P extends UrlParameters>(parameters: P, baseUrl: string): string {
+    const nonUndefinedParams: [string, string][] = Object.entries(parameters)
+        .filter(([_, value]) => value !== undefined)
+        .map(([key, value]) => [key, `${value}`])
+    const searchParams = new URLSearchParams(nonUndefinedParams)
+    return `${baseUrl}?${searchParams}`
+}

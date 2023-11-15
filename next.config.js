@@ -5,11 +5,16 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 
 module.exports = withBundleAnalyzer({
     images: {
-        domains: ['image.pollinations.ai'],
+        remotePatterns: [
+            {
+                protocol: 'https',
+                hostname: '**',
+            },
+        ],
     },
     reactStrictMode: false,
     webpack(config, options) {
         config.resolve.alias['@'] = path.resolve(__dirname, '.')
         return config
-    }
+    },
 })

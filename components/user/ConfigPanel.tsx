@@ -51,7 +51,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ className }) => {
         setAnchorEl(null)
     }
 
-    const [userConfig, setUserConfig] = useState<UserConfig>({ serpEnabled: 0, temperature: 0 })
+    const [userConfig, setUserConfig] = useState<Pick<UserConfig, 'serpEnabled' | 'temperature'>>({ serpEnabled: 0, temperature: 0 })
 
     useEffect(() => {
         config && setUserConfig(config)
