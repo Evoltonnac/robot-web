@@ -51,7 +51,7 @@ const addUser = tryOrBoom(
 )
 
 const editConfig = tryOrBoom(
-    async (userId: string, newConfig: UserConfig) => {
+    async (userId: string, newConfig: Partial<UserConfig>) => {
         const user = await User.findById(userId)
         if (!user) {
             throw Boom.notFound<ErrorData>('', {

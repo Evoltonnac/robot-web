@@ -1,3 +1,5 @@
+import { Tools } from '../server/langchain'
+
 export interface User {
     username: string
     password: string
@@ -7,4 +9,5 @@ export interface User {
 export interface UserConfig {
     serpEnabled: 0 | 1
     temperature: number
+    activePlugins: Tools[]
 }

@@ -1,4 +1,4 @@
-import { SerpAPIParameters } from 'langchain/tools'
+import { SerpAPIParameters, Tool } from 'langchain/tools'
 
 type Language = 'zh-cn' | 'ja' | 'en'
 
@@ -29,4 +29,9 @@ export const LANGUAGE_SERP_MAP: Record<Language, Partial<SerpAPIParameters>> = {
 export function parseGoogleSearch(params: Partial<SerpAPIParameters>): string {
     const { q = '', gl = '', hl = '' } = params
     return `https://www.google.com/search?gl=${gl}&hl=${hl}&q=${encodeURIComponent(q)}&oq=${encodeURIComponent(q)}&lum_json=1`
+}
+
+// get active plugins list from string array
+export function getPlugins(plugins: Tool[], activePlugins: string[]): Tool[] {
+    return plugins.filter((plugin) => activePlugins.includes(plugin.name))
 }
