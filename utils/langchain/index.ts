@@ -1,4 +1,6 @@
-import { SerpAPIParameters, Tool } from 'langchain/tools'
+import { AIPluginTool, RequestsGetTool, SerpAPIParameters, Tool } from 'langchain/tools'
+import { RequestsPostTool } from './RequestsPostTool'
+import { Plugins, Tools, ToolsMap } from '@/types/server/langchain'
 
 type Language = 'zh-cn' | 'ja' | 'en'
 
@@ -32,6 +34,17 @@ export function parseGoogleSearch(params: Partial<SerpAPIParameters>): string {
 }
 
 // get active plugins list from string array
-export function getPlugins(plugins: Tool[], activePlugins: string[]): Tool[] {
-    return plugins.filter((plugin) => activePlugins.includes(plugin.name))
+export function getPlugins(plugins: Tool[], activeTools: Tools[]): Tool[] {
+    const enabledPlugins = activeTools.reduce((pre, cur) => {
+        if (ToolsMap[cur]) {
+            pre.push(...ToolsMap[cur])
+            return pre
+        }
+        return pre
+    }, [] as Plugins[])
+    const activePlugins = plugins.filter((plugin) => enabledPlugins.includes(plugin.name as Plugins))
+    if (activePlugins.some((plugin) => plugin instanceof AIPluginTool)) {
+        activePlugins.unshift(new RequestsGetTool(), new RequestsPostTool())
+    }
+    return activePlugins
 }
