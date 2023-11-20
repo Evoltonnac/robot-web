@@ -128,7 +128,6 @@ router.post(async (req) => {
                 memoryKey: 'chat_history',
                 returnMessages: true,
             }),
-            verbose: true,
         })
 
         agent.call({ input: content }, [handlers]).catch((err) => {
