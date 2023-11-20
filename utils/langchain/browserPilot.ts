@@ -1,6 +1,5 @@
 import { Tool } from 'langchain/tools'
-import { buildUrl } from '../shared'
-import { Tools } from '@/types/server/langchain'
+import { Plugins } from '@/types/server/langchain'
 
 interface BaseParameters {
     timeout?: number
@@ -25,7 +24,7 @@ export class BrowserPilot extends Tool {
         this.params = params
     }
 
-    name = Tools.BrowserPilot
+    name = Plugins.BrowserPilot
 
     async _call(input: string) {
         if (!/^https?:\/\//.test(input)) {
@@ -49,7 +48,7 @@ export class BrowserPilot extends Tool {
             return (
                 `Text: ${res.result.content}\n\n` +
                 `Link: ${input}\n\n` +
-                `Maybe you should give a short summary from the above text or use as needed. If necessary, the link should be embedded in the result text using Markdown's reference-style link syntax.`
+                `Assistant should give a short summary from the above text or use as needed. If necessary, the link should be embedded in the result text using Markdown's reference-style link syntax.`
             )
         }
         return 'The input is not a valid http URL including protocol'

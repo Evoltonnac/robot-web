@@ -11,9 +11,9 @@ import { ConversationChain } from 'langchain/chains'
 import { LANGUAGE_SERP_MAP, checkLanguage, getPlugins } from '@/utils/langchain'
 import { SerpAPITool } from '@/utils/langchain/serpApiTool'
 import { ImageSearch } from '@/utils/langchain/imageSearch'
-import { Tool } from 'langchain/tools'
-import { Calculator } from '@/utils/langchain/calculator'
+import { Tool, WikipediaQueryRun } from 'langchain/tools'
 import { BrowserPilot } from '@/utils/langchain/browserPilot'
+import { GifSearch } from '@/utils/langchain/gifSearch'
 
 interface pushMessageOptions {
     chatId: string
@@ -85,7 +85,10 @@ router.post(async (req) => {
     })
 
     // tools for langchain agent
-    const tools: Tool[] = getPlugins([new ImageSearch()], activePlugins)
+    const tools: Tool[] = getPlugins(
+        [new ImageSearch(), GifSearch, new WikipediaQueryRun({ topKResults: 3, maxDocContentLength: 4000 }), new BrowserPilot()],
+        activePlugins
+    )
 
     // init serpapi for language
     const serpApiTool = new SerpAPITool(
@@ -97,7 +100,7 @@ router.post(async (req) => {
             headers: { authorization: req.headers.get('authorization') || '' },
         }
     )
-    serpEnabled && tools.push(serpApiTool, new BrowserPilot(), new Calculator())
+    serpEnabled && tools.push(serpApiTool)
 
     // chat history
     const chatHistory = new ChatMessageHistory(
@@ -125,6 +128,7 @@ router.post(async (req) => {
                 memoryKey: 'chat_history',
                 returnMessages: true,
             }),
+            verbose: true,
         })
 
         agent.call({ input: content }, [handlers]).catch((err) => {
