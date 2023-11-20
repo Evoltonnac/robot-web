@@ -1,6 +1,6 @@
 import { Tool } from 'langchain/tools'
 import { buildUrl } from '../shared'
-import { Tools } from '@/types/server/langchain'
+import { Plugins } from '@/types/server/langchain'
 
 /**
  * This does not use the `serpapi` package because it appears to cause issues
@@ -89,7 +89,7 @@ export class SerpAPITool extends Tool {
         this.init = init
     }
 
-    name = Tools.SerpAPITool
+    name = Plugins.SerpAPITool
 
     protected parseOrganicResults(organic_results: any): string {
         const results: Array<{ r: number; d: string; l: string }> = []

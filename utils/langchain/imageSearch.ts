@@ -1,6 +1,6 @@
 import { Tool } from 'langchain/tools'
 import { buildUrl } from '../shared'
-import { Tools } from '@/types/server/langchain'
+import { Plugins } from '@/types/server/langchain'
 
 interface BaseParameters {
     timeout?: number
@@ -21,7 +21,7 @@ export class ImageSearch extends Tool {
         this.params = params
     }
 
-    name = Tools.ImageSearch
+    name = Plugins.ImageSearch
 
     async _call(input: string) {
         const { timeout, ...params } = this.params
