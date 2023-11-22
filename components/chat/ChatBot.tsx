@@ -6,7 +6,6 @@ import SendIcon from '@mui/icons-material/Send'
 import DeleteOutlineRounded from '@mui/icons-material/DeleteOutlineRounded'
 import { DECODER } from '@/utils/shared'
 import MessageCard from './MessageCard'
-import { clientRequest } from '@/src/utils/request'
 import { getAuthorizationHeader } from '@/src/utils/auth'
 import { Chat } from '@/types/view/chat'
 import { MessageType } from '@/types/model/chat'
@@ -16,12 +15,21 @@ import { useUser } from '../global/User'
 import ConfigPanel from '../user/ConfigPanel'
 import useSWR from 'swr'
 import { AIPluginSelector } from '../common/AIPluginSelector'
+import { requestWithNotification } from '../global/RequestInterceptor'
 
 export const useChatBot = (chatid?: string) => {
-    const { data, mutate } = useSWR<Chat>(chatid ? `/api/chat/${chatid}` : null, clientRequest.get, {
-        revalidateIfStale: false,
-        revalidateOnFocus: false,
-    })
+    const { data, mutate } = useSWR<Chat>(
+        chatid ? `/api/chat/${chatid}` : null,
+        (url) => {
+            return requestWithNotification<Chat>(url).then((resData) => {
+                return resData.data || ({} as Chat)
+            })
+        },
+        {
+            revalidateIfStale: false,
+            revalidateOnFocus: false,
+        }
+    )
     // store messageList locally for stream text update
     const [messageList, setMessageList] = useState<Message[]>([])
     useEffect(() => {
@@ -237,8 +245,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ chatid, updateChatItem }) => {
             return
         }
         isSubmitting.current = true
-        clientRequest
-            .post(`/api/chat/${chatid}/clear`)
+        requestWithNotification(`/api/chat/${chatid}/clear`, { method: 'POST' })
             .then(() => {
                 clearMessage()
             })

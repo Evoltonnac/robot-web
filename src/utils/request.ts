@@ -1,100 +1,95 @@
-import axios, { AxiosResponse, CreateAxiosDefaults, InternalAxiosRequestConfig } from 'axios'
 import { getAuthorizationHeader, logOut } from './auth'
 import { SendNotification } from '@/src/hooks/useNotification'
-import { GetServerSidePropsContext } from 'next'
+import { CommonResponse } from '@/types/server/common'
+import { fetch } from 'cross-fetch'
+import { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/adapters/request-cookies'
 
-const { DOMAIN = 'robot-web-app.vercel.app' } = process.env
+const { DOMAIN = '' } = process.env
+const BASE_URL = `${DOMAIN.indexOf(':') === -1 ? 'https://' : 'http://'}${DOMAIN}`
 
-interface EnhancedAxiosRequestConfig extends InternalAxiosRequestConfig {
-    nextCtx?: GetServerSidePropsContext // res object at serverside in nextjs
-}
+const modifyRequestInit = (init: RequestInitWithJSON, cookies?: ReadonlyRequestCookies): RequestInit => {
+    const { data, headers, ...rest } = init
+    const headersObj = new Headers(headers)
+    const initModified = {
+        headers: headersObj,
+        ...rest,
+    }
+    // format json request
+    if (!headersObj.get('Content-Type') && Object.prototype.toString.call(data) === '[object Object]') {
+        initModified.body = JSON.stringify(data)
+        headersObj.set('Content-Type', 'application/json')
+    }
+    // add auth header
+    const { Authorization } = getAuthorizationHeader(cookies)
+    headersObj.set('Authorization', Authorization)
 
-// add header
-const addTokenInterceptor = (config: EnhancedAxiosRequestConfig) => {
-    const { nextCtx } = config
-    const authorizationHeader = getAuthorizationHeader(nextCtx?.req)
-    Object.assign(config.headers, authorizationHeader)
-    return config
+    initModified.headers = headersObj
+    return initModified
 }
 
 // default get json data
-export const resHandleInterceptor = (response: AxiosResponse) => {
-    if (response.data) {
-        return Promise.resolve(response.data.data)
+export async function resHandleInterceptor<T>(response: Response): Promise<CommonResponse<T> | Response> {
+    const { headers, status } = response
+    // json data handler
+    if (headers.get('content-type')?.indexOf('application/json') !== -1) {
+        const resData = await response.json()
+        if (status === 200 && resData.data) {
+            // resolve json body
+            return Promise.resolve(resData)
+        } else {
+            // throw json error
+            return Promise.reject({ ...response, ...resData })
+        }
     }
-    return Promise.resolve(response.data)
+    return Promise.resolve(response)
 }
 
 /**
  * error handler
  * @param sendNotification send notification if at client side
  */
-export const errorHandleInterceptor = (sendNotification?: SendNotification) => (error: any) => {
-    if (error.response) {
-        const { data: resData, status } = error.response
-        const { errno, errmsg } = resData || {}
+export const errorHandleInterceptor = (sendNotification?: SendNotification) => async (error: Response & CommonResponse<unknown>) => {
+    if (error.status && error.errno) {
+        const { errno, errmsg } = error
         // not logged
-        if (status === 401) {
+        if (error.status === 401) {
             logOut()
         }
         // other error message
-        if (+errno !== 0 && errmsg) {
+        else if (+errno !== 0 && errmsg) {
             sendNotification ? sendNotification({ msg: errmsg, variant: 'error' }) : console.error(errmsg)
+        } else {
+            console.error(error)
         }
-    } else if (error.request) {
-        console.error('timeout')
     } else {
-        // handle other errors
+        console.error(error)
     }
     return Promise.reject(error)
 }
 
-// shared axios factory both at client and server side
-const sharedRequest = (options?: CreateAxiosDefaults) => {
-    // axios instance for making requests
-    const axiosInstance = axios.create({
-        timeout: 6000,
-        params: {},
-        ...options,
-    })
-
-    axiosInstance.interceptors.request.use(addTokenInterceptor)
-    return axiosInstance
+// override response when T is Recard type
+interface RequestFunc {
+    (input: string, init?: RequestInitWithJSON | undefined): Promise<Response | CommonResponse<unknown>>
+    <T>(input: string, init?: RequestInitWithJSON | undefined): Promise<CommonResponse<T>>
 }
 
-// axios instance at server side
-export const serverRequest = (nextCtx?: GetServerSidePropsContext) => {
-    const axiosInstance = sharedRequest({
-        baseURL: `${DOMAIN.indexOf(':') === -1 ? 'https://' : 'http://'}//${DOMAIN}`,
-    })
-    // add custom ctx to axios request config
-    nextCtx &&
-        axiosInstance.interceptors.request.use((config: EnhancedAxiosRequestConfig) => {
-            config.nextCtx = nextCtx
-            return config
-        })
-    axiosInstance.interceptors.response.use(resHandleInterceptor, errorHandleInterceptor())
-    return axiosInstance
+interface RequestInitWithJSON extends RequestInit {
+    data?: Record<string, unknown>
 }
 
-// axios instance at client side，this instance will add interceptors at rendering in RequestInterceptor.tsx
-export const clientRequest = sharedRequest()
+export const createRequest = (options?: { cookies?: ReadonlyRequestCookies; sendNotification?: SendNotification }) => {
+    const { cookies, sendNotification } = options || {}
+    const requestFunc = (<T>(input: string, init?: RequestInitWithJSON | undefined): Promise<Response | CommonResponse<T>> => {
+        const isServer = typeof window === 'undefined'
+        let url = input
+        if (isServer && input.startsWith('/')) {
+            url = BASE_URL + input
+        }
 
-// pure axios instance without any interaction
-export const pureRequest = (function () {
-    const axiosInstance = sharedRequest()
-    axiosInstance.interceptors.response.use(resHandleInterceptor, null)
-    return axiosInstance
-})()
-
-// axios instance at both sides (e.g. getInitialProps)
-export const commonRequest = (nextCtx?: GetServerSidePropsContext) => {
-    // server side
-    if (typeof window === 'undefined') {
-        return serverRequest(nextCtx)
-    }
-    // client side
-    else {
-        return clientRequest
-    }
+        return fetch(url, modifyRequestInit(init || {}, cookies))
+            .then(resHandleInterceptor<T>)
+            .catch(errorHandleInterceptor(sendNotification))
+    }) as RequestFunc
+    return requestFunc
 }
+export const request = createRequest()

@@ -1,28 +1,10 @@
 export const ENCODER = new TextEncoder()
 export const DECODER = new TextDecoder()
 
-// shared cookie
-import jsCookie from 'js-cookie'
-import { getCookie } from 'cookies-next'
-import { GetServerSidePropsContext } from 'next'
-export const clientCookie = jsCookie
-export class SharedCookie {
-    private req?: GetServerSidePropsContext['req']
-    private res?: GetServerSidePropsContext['res']
-    constructor(req?: GetServerSidePropsContext['req'], res?: GetServerSidePropsContext['res']) {
-        this.req = req
-        this.res = res
-    }
-    get(key: string) {
-        const { req, res } = this
-        if (typeof window === 'undefined') {
-            return getCookie(key, { req, res })
-        } else {
-            return jsCookie.get(key)
-        }
-    }
+export async function generateHash(str: string, algorithm: AlgorithmIdentifier = 'SHA-256') {
+    const hashBytes = await crypto.subtle.digest(algorithm, ENCODER.encode(str))
+    return Array.prototype.map.call(new Uint8Array(hashBytes), (x) => ('00' + x.toString(16)).slice(-2)).join('')
 }
-export const sharedCookie = new SharedCookie()
 
 // build url with parameters
 type UrlParameters = Record<string, string | number | boolean | undefined | null>
@@ -32,5 +14,16 @@ export function buildUrl<P extends UrlParameters>(parameters: P, baseUrl: string
         .filter(([_, value]) => value !== undefined)
         .map(([key, value]) => [key, `${value}`])
     const searchParams = new URLSearchParams(nonUndefinedParams)
-    return `${baseUrl}?${searchParams}`
+    return `${baseUrl}${baseUrl.endsWith('?') ? '&' : '?'}${searchParams}`
+}
+
+// 返回类型为keys中所有string作为key的Record
+export function getAllParams(searchParams: URLSearchParams, keys: string[]): Record<string, string> {
+    return keys.reduce((pre, cur) => {
+        const value = searchParams.get(cur)
+        return {
+            ...pre,
+            [cur]: value || '',
+        }
+    }, {})
 }
