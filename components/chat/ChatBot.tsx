@@ -1,3 +1,4 @@
+'use client'
 import React, { useEffect, useRef, useState } from 'react'
 import { Button, TextField, Box, Grid, Chip } from '@mui/material'
 import { makeStyles } from 'tss-react/mui'

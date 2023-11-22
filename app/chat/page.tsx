@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { createRequest } from '@/src/utils/request'
 import { redirect } from 'next/navigation'
 import { Preset } from '@/types/view/preset'
-import Chat from './pageClient'
+import ChatPage from './pageClient'
 
 type ChatListResponse = {
     chatList: ChatListItem[]
@@ -34,5 +34,5 @@ export const getList = async (): Promise<ChatListPageProps> => {
 
 export default async function Page() {
     const data = await getList()
-    return <Chat {...data}></Chat>
+    return <ChatPage {...data}></ChatPage>
 }
