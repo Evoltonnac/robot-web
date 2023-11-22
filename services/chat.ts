@@ -2,14 +2,14 @@ import Chat from '@/models/chat'
 import { Message } from '@/types/model/chat'
 import { ErrorData } from '@/types/server/common'
 import Boom from '@hapi/boom'
-import { Types } from 'mongoose'
 import { tryOrBoom } from './middlewares/customRouter'
 import { ChatListItem } from '@/types/view/chat'
 import Preset from '@/models/preset'
 import { MAX_ROUNDS } from '@/utils/constant'
+import mongoose from 'mongoose'
 
 const getChatById = tryOrBoom(
-    async (userId: Types.ObjectId, chatId: string) => {
+    async (userId: string, chatId: string) => {
         const chat = await Chat.findById(chatId).populate('preset')
         if (!chat) {
             throw Boom.notFound<ErrorData>('', {
@@ -33,7 +33,7 @@ const getChatById = tryOrBoom(
 
 // add new chat and return the new chat object
 const addChat = tryOrBoom(
-    async (userId: Types.ObjectId, presetId: string) => {
+    async (userId: string, presetId: string) => {
         const newChat = new Chat({
             user: userId,
             messages: [],
@@ -53,7 +53,7 @@ const addChat = tryOrBoom(
 
 // delete chat
 const deleteChatById = tryOrBoom(
-    async (userId: Types.ObjectId, chatId: string) => {
+    async (userId: string, chatId: string) => {
         await Chat.findOneAndDelete({ user: userId, _id: chatId })
         return
     },
@@ -65,7 +65,7 @@ const deleteChatById = tryOrBoom(
 
 // clear all messages of a chat
 const clearChatById = tryOrBoom(
-    async (userId: Types.ObjectId, chatId: string) => {
+    async (userId: string, chatId: string) => {
         await Chat.updateOne(
             {
                 user: userId,
@@ -85,7 +85,7 @@ const clearChatById = tryOrBoom(
 
 // push messages to a chat
 const pushMessages = tryOrBoom(
-    async (userId: Types.ObjectId, chatId: string, messages: Message[], maxRounds: number = MAX_ROUNDS) => {
+    async (userId: string, chatId: string, messages: Message[], maxRounds: number = MAX_ROUNDS) => {
         const chat = await getChatById(userId, chatId)
         if (chat.messages.filter(({ role }) => role === 'assistant').length >= maxRounds) {
             throw Boom.badRequest<ErrorData>('', {
@@ -105,7 +105,7 @@ const pushMessages = tryOrBoom(
 
 // updata a message to a chat
 const updataMessage = tryOrBoom(
-    async (userId: Types.ObjectId, chatId: string, messageId: string, message: Message) => {
+    async (userId: string, chatId: string, messageId: string, message: Message) => {
         await Chat.updateOne(
             {
                 user: userId,
@@ -132,11 +132,11 @@ const updataMessage = tryOrBoom(
 
 // get chat list of a user
 const getChatList = tryOrBoom(
-    async (userId: Types.ObjectId) => {
+    async (userId: string) => {
         const chats = await Chat.aggregate<ChatListItem>([
             {
                 $match: {
-                    user: userId,
+                    user: new mongoose.Types.ObjectId(userId),
                 },
             },
             {

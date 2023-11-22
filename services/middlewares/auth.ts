@@ -2,7 +2,6 @@ import { NextHandler } from 'next-connect'
 import { User as UserType } from '@/types/model/user'
 import { Types } from 'mongoose'
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose'
-import { getUserByName } from '../user'
 import { DBRequest } from './db'
 import Boom from '@hapi/boom'
 import { ENCODER } from '@/utils/shared'
@@ -13,13 +12,13 @@ const secret = ENCODER.encode(JWT_SECRET)
 
 interface JWTPayloadType extends JWTPayload {
     version: string
-    _id: Types.ObjectId
+    _id: string
     username: string
 }
 
 export interface AuthRequest extends DBRequest {
     currentUser: {
-        _id: Types.ObjectId
+        _id: string
         username: string
     }
 }
