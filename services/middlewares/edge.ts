@@ -1,6 +1,6 @@
 import { ErrorData } from '@/types/server/common'
 import { createEdgeRouter } from 'next-connect'
-import { EdgeRouter } from 'next-connect/dist/types/edge'
+import type { EdgeRouter } from 'next-connect/dist/types/edge'
 import { NextResponse as NextOriResponse, NextRequest } from 'next/server'
 
 export declare class CustomEdgeRouter<Req extends Request, Ctx = unknown> extends EdgeRouter<Req, Ctx> {
