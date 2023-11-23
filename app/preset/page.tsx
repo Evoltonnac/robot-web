@@ -8,7 +8,7 @@ export type PresetListResponse = {
     presetList: Preset[]
 }
 
-export const getList = async (): Promise<PresetListResponse> => {
+const getList = async (): Promise<PresetListResponse> => {
     try {
         const prefetch = createRequest({
             cookies: cookies(),

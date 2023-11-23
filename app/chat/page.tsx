@@ -13,7 +13,7 @@ type PresetListResponse = {
 }
 export type ChatListPageProps = ChatListResponse & PresetListResponse
 
-export const getList = async (): Promise<ChatListPageProps> => {
+const getList = async (): Promise<ChatListPageProps> => {
     try {
         const prefetch = createRequest({
             cookies: cookies(),
