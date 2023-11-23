@@ -1,6 +1,11 @@
 import { ErrorData } from '@/types/server/common'
 import { createEdgeRouter } from 'next-connect'
+import { EdgeRouter } from 'next-connect/dist/types/edge'
 import { NextResponse as NextOriResponse, NextRequest } from 'next/server'
+
+export declare class CustomEdgeRouter<Req extends Request, Ctx = unknown> extends EdgeRouter<Req, Ctx> {
+    run(req: Req, ctx: Ctx): Promise<void | Response>
+}
 
 /**
  * custom NextResponse class which override json method with data format logic
@@ -61,5 +66,5 @@ export function createCustomEdgeRouter<T extends NextRequest, P extends { params
             return errorHandlerEdge(err)
         })
     }
-    return router
+    return router as CustomEdgeRouter<T, P>
 }

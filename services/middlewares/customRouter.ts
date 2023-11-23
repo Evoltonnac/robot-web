@@ -2,7 +2,7 @@ import { ErrorData } from '@/types/server/common'
 import { Boom, internal, isBoom } from '@hapi/boom'
 import { createEdgeRouter } from 'next-connect'
 import { NextRequest } from 'next/server'
-import { NextResponse } from './edge'
+import { CustomEdgeRouter, NextResponse } from './edge'
 
 /**
  * errno定义规范
@@ -50,12 +50,12 @@ export const errorHandler = (err: unknown) => {
 export function createCustomRouter<T extends NextRequest, P extends { params: unknown }>() {
     const router = createEdgeRouter<T, P>()
     const run = router.run.bind(router)
-    router.run = (req: T, ctx: P): Promise<unknown> => {
+    router.run = (req: T, ctx: P) => {
         return run(req, ctx).catch((err) => {
             return errorHandler(err)
         })
     }
-    return router
+    return router as CustomEdgeRouter<T, P>
 }
 
 // trans to Boom error
