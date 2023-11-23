@@ -8,6 +8,7 @@ import { ENCODER } from '@/utils/shared'
 
 const { JWT_SECRET = '' } = process.env
 const JWT_VERSION = '1'
+const alg = 'HS256'
 const secret = ENCODER.encode(JWT_SECRET)
 
 interface JWTPayloadType extends JWTPayload {
@@ -47,6 +48,7 @@ export async function generateJWT(
         _id: user._id,
         username: user.username,
     })
+        .setProtectedHeader({ alg, typ: 'JWT' })
         .setExpirationTime('3d')
         .sign(secret)
 }
