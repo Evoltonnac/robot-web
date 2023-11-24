@@ -1,7 +1,8 @@
 import { ErrorData } from '@/types/server/common'
 import { Boom, internal, isBoom } from '@hapi/boom'
-import { NextApiRequest, NextApiResponse } from 'next'
-import { createRouter } from 'next-connect'
+import { createEdgeRouter } from 'next-connect'
+import { NextRequest } from 'next/server'
+import { CustomEdgeRouter, NextResponse } from './edge'
 
 /**
  * errno定义规范
@@ -18,55 +19,43 @@ import { createRouter } from 'next-connect'
  */
 
 // error handler in serverless functions
-export const errorHandler = (err: unknown, req: NextApiRequest, res: NextApiResponse) => {
+export const errorHandler = (err: unknown) => {
     // 如果是一个 Boom 异常，则根据 Boom 异常结构修改 `res`
     if (isBoom(err)) {
-        res.status(err.output.payload.statusCode)
-        res.json({
-            errno: err.data?.errno || 'B0000',
-            errmsg: err.data?.errmsg || err.message,
-        })
-        res.end()
+        return NextResponse.json(
+            {
+                errno: err.data?.errno || 'B0000',
+                errmsg: err.data?.errmsg || err.message,
+            },
+            {
+                status: err.output.payload.statusCode,
+            }
+        )
     } else {
         // unexcepted error
         console.error(err)
-        res.status(500)
-        res.json({
-            errno: 'B0000',
-            errmsg: '未知错误',
-        })
-        res.end()
+        return NextResponse.json(
+            {
+                errno: 'B0000',
+                errmsg: '未知错误',
+            },
+            {
+                status: 500,
+            }
+        )
     }
 }
 
 // serverless router creater with universal error handler
-export function createCustomRouter<T extends NextApiRequest, P extends NextApiResponse>() {
-    const router = createRouter<T, P>()
-    // extend json function
-    router.use((req, res: NextApiResponse, next) => {
-        const json = res.json.bind(res)
-        res.json = (data) => {
-            if (Object.prototype.toString.call(data) !== '[object Object]') {
-                return json({
-                    errno: '00000',
-                    data,
-                })
-            }
-            const { errno, errmsg, ...rest } = data
-            json({
-                errmsg,
-                errno: errno || '00000',
-                data: { ...rest },
-            })
-        }
-        return next()
-    })
-    const handler = router.handler.bind(router)
-    router.handler = () =>
-        handler({
-            onError: errorHandler,
+export function createCustomRouter<T extends NextRequest, P extends { params: unknown }>() {
+    const router = createEdgeRouter<T, P>()
+    const run = router.run.bind(router)
+    router.run = (req: T, ctx: P) => {
+        return run(req, ctx).catch((err) => {
+            return errorHandler(err)
         })
-    return router
+    }
+    return router as CustomEdgeRouter<T, P>
 }
 
 // trans to Boom error

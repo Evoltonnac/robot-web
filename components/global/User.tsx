@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { User } from '@/types/view/user'
 import { FCProps } from '@/types/view/common'
-import { clientRequest, pureRequest } from '@/src/utils/request'
+import { request } from '@/src/utils/request'
 import { throttle } from 'lodash'
 
 interface UserContextType {
@@ -23,8 +23,8 @@ export const UserProvider: React.FC<FCProps> = ({ children }) => {
     const [userData, setUserData] = useState<User>()
 
     const getUserInfo = () => {
-        pureRequest.get<User>('/api/user').then((data) => {
-            setUserData(data)
+        request<User>('/api/user').then((res) => {
+            res.data && setUserData(res.data)
         })
     }
     // request onshow and try to warm-up instance
@@ -49,10 +49,9 @@ export const UserProvider: React.FC<FCProps> = ({ children }) => {
             return
         }
         isUpdating.current = true
-        clientRequest
-            .patch<User>(`/api/user`, { config })
-            .then((data) => {
-                setUserData(data)
+        request<User>(`/api/user`, { method: 'PATCH', data: { config } })
+            .then((res) => {
+                res.data && setUserData(res.data)
             })
             .finally(() => {
                 isUpdating.current = false

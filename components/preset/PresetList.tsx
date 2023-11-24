@@ -1,7 +1,5 @@
 import { Avatar, Box, Grid, IconButton, Paper, Typography } from '@mui/material'
 import { Preset } from '@/types/view/preset'
-import Router from 'next/router'
-import { clientRequest } from '@/src/utils/request'
 import { useRef, useState } from 'react'
 import Add from '@mui/icons-material/Add'
 import Delete from '@mui/icons-material/Delete'
@@ -11,30 +9,37 @@ import { PresetEditor } from './PresetEditor'
 import { ChatListItem } from '@/types/view/chat'
 import { CSSObject } from 'tss-react/types'
 import { RobotIcon } from '../common/Icons'
+import { requestWithNotification } from '../global/RequestInterceptor'
+import { useRouter } from 'next/navigation'
 
 export const usePresetList = (presetList: Preset[]) => {
     const [list, setList] = useState<Preset[]>(presetList)
     const addPreset = (preset: Partial<Preset>) => {
-        return clientRequest.post<Preset>('/api/preset', { ...preset }).then((data) => {
-            setList(list.concat([data]))
-            return data
+        return requestWithNotification<Preset>(`/api/preset`, { method: 'POST', body: JSON.stringify(preset) }).then(({ data }) => {
+            if (data) {
+                setList(list.concat([data]))
+                return data
+            } else {
+                return Promise.reject()
+            }
         })
     }
     const updatePreset = (id: string, preset: Partial<Preset>) => {
-        return clientRequest
-            .patch<Preset>(`/api/preset/${id}`, {
+        return requestWithNotification<Preset>(`/api/preset/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
                 ...preset,
-            })
-            .then(() => {
-                const updatedIdx = list.findIndex(({ _id }) => _id === id)
-                const newList = [...list]
-                newList[updatedIdx] = { ...newList[updatedIdx], ...preset }
-                setList(newList)
-                return newList[updatedIdx]
-            })
+            }),
+        }).then(() => {
+            const updatedIdx = list.findIndex(({ _id }) => _id === id)
+            const newList = [...list]
+            newList[updatedIdx] = { ...newList[updatedIdx], ...preset }
+            setList(newList)
+            return newList[updatedIdx]
+        })
     }
     const deletePreset = (id: string) => {
-        return clientRequest.delete<Preset>(`/api/preset/${id}`).then(() => {
+        return requestWithNotification<Preset>(`/api/preset/${id}`, { method: 'DELETE' }).then(() => {
             const deletedIdx = list.findIndex(({ _id }) => _id === id)
             const newList = [...list]
             const deletedPreset = newList.splice(deletedIdx, 1)
@@ -105,6 +110,7 @@ interface PresetListProps {
 
 export const PresetList: React.FC<PresetListProps> = ({ list, actions, onNavigate, maxShow = 4, gridSize }) => {
     const { classes } = useStyles()
+    const router = useRouter()
 
     const curDeleting = useRef<string>('')
     // edit preset
@@ -151,7 +157,7 @@ export const PresetList: React.FC<PresetListProps> = ({ list, actions, onNavigat
             if (onNavigate) {
                 onNavigate(newChat._id)
             } else {
-                Router.push(`/chat/${newChat._id}`)
+                router.push(`/chat/${newChat._id}`)
             }
         }, 300)
     }

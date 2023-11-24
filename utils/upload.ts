@@ -3,12 +3,20 @@ import { S3Client, PutObjectCommand, PutObjectCommandInputType } from '@aws-sdk/
 let s3: S3Client | null = null
 
 const bucket = process.env.AWS_BUCKET_NAME || ''
+const accessKeyId = process.env.AWS_ACCESS_KEY_ID || ''
+const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || ''
 
 export function getS3(): S3Client {
     if (s3) {
         return s3
     }
-    s3 = new S3Client({ region: 'ap-southeast-1' })
+    s3 = new S3Client({
+        region: 'ap-southeast-1',
+        credentials: {
+            accessKeyId,
+            secretAccessKey,
+        },
+    })
     return s3
 }
 

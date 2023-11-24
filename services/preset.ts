@@ -1,6 +1,5 @@
 import Preset from '@/models/preset'
 import { Preset as PresetType } from '@/types/model/preset'
-import { Types } from 'mongoose'
 import Boom from '@hapi/boom'
 import { ErrorData } from '@/types/server/common'
 import { tryOrBoom } from './middlewares/customRouter'
@@ -24,7 +23,7 @@ const getPresetById = tryOrBoom(
 
 // add new preset belong to current user
 const addPreset = tryOrBoom(
-    async (userId: Types.ObjectId, preset: Omit<PresetType, 'user'>) => {
+    async (userId: string, preset: Omit<PresetType, 'user'>) => {
         const newPreset = new Preset({
             user: userId,
             ...preset,
@@ -40,7 +39,7 @@ const addPreset = tryOrBoom(
 
 // delete preset
 const deletePresetById = tryOrBoom(
-    async (userId: Types.ObjectId, presetId: string) => {
+    async (userId: string, presetId: string) => {
         await Preset.findOneAndDelete({ user: userId, _id: presetId })
         return
     },
@@ -52,7 +51,7 @@ const deletePresetById = tryOrBoom(
 
 // update preset
 const updatePresetById = tryOrBoom(
-    async (userId: Types.ObjectId, presetId: string, preset: Omit<PresetType, 'user'>) => {
+    async (userId: string, presetId: string, preset: Omit<PresetType, 'user'>) => {
         const targetPreset = await Preset.findOneAndUpdate({ user: userId, _id: presetId }, { $set: preset })
         if (!targetPreset) {
             throw Boom.notFound<ErrorData>('', {
@@ -70,7 +69,7 @@ const updatePresetById = tryOrBoom(
 
 // get preset list of a user
 const getPresetList = tryOrBoom(
-    async (userId: Types.ObjectId) => {
+    async (userId: string) => {
         const presets = await Preset.find({
             user: userId,
         })

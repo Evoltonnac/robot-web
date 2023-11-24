@@ -1,57 +1,54 @@
-import { NextApiResponse } from 'next'
 import { NextHandler } from 'next-connect'
 import { User as UserType } from '@/types/model/user'
 import { Types } from 'mongoose'
-import jwt, { JwtPayload } from 'jsonwebtoken'
-import { getUserByName } from '../user'
+import { SignJWT, jwtVerify, type JWTPayload } from 'jose'
 import { DBRequest } from './db'
 import Boom from '@hapi/boom'
+import { ENCODER } from '@/utils/shared'
 
 const { JWT_SECRET = '' } = process.env
 const JWT_VERSION = '1'
+const alg = 'HS256'
+const secret = ENCODER.encode(JWT_SECRET)
 
-interface JWTPayloadType extends JwtPayload {
+interface JWTPayloadType extends JWTPayload {
     version: string
-    _id: Types.ObjectId
+    _id: string
     username: string
 }
 
 export interface AuthRequest extends DBRequest {
-    currentUser: UserType & {
-        _id: Types.ObjectId
+    currentUser: {
+        _id: string
+        username: string
     }
 }
 
 // check user authorization
-export async function authMiddleware(req: AuthRequest, res: NextApiResponse, next: NextHandler) {
-    const token = (req.headers.authorization || '').replace(/^Bearer\s+/, '')
+export async function authMiddleware(req: AuthRequest, ctx: unknown, next: NextHandler) {
+    const token = req.headers.get('authorization')?.replace(/^Bearer\s+/, '') || ''
     try {
-        const decoded = jwt.verify(token, JWT_SECRET) as JWTPayloadType
+        const { _id, username } = (await jwtVerify(token, secret)).payload as JWTPayloadType
         // check if user exists
-        const user = await getUserByName(decoded?.username)
-        req.currentUser = user.toObject()
+        req.currentUser = { _id, username }
     } catch (err) {
         throw Boom.unauthorized('用户未登录')
     }
-    await next()
+    return await next()
 }
 
 // generateJWT from user
-export function generateJWT(
+export async function generateJWT(
     user: UserType & {
         _id: Types.ObjectId
     }
 ) {
-    const token = jwt.sign(
-        {
-            version: JWT_VERSION,
-            _id: user._id,
-            username: user.username,
-        },
-        JWT_SECRET,
-        {
-            expiresIn: '3d',
-        }
-    )
-    return token
+    return new SignJWT({
+        version: JWT_VERSION,
+        _id: user._id,
+        username: user.username,
+    })
+        .setProtectedHeader({ alg, typ: 'JWT' })
+        .setExpirationTime('3d')
+        .sign(secret)
 }
