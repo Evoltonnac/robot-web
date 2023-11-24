@@ -62,9 +62,6 @@ export default function Home() {
     }
     const [isRegister, setIsRegister] = useState(false)
 
-    useEffect(() => {
-        document.title = '登录'
-    }, [])
     return (
         <Box className={classes.page}>
             <Box className={classes.loginContainer}>

@@ -38,7 +38,7 @@ export async function resHandleInterceptor<T>(response: Response): Promise<Commo
             return Promise.resolve(resData)
         } else {
             // throw json error
-            return Promise.reject({ ...response, ...resData })
+            return Promise.reject(Object.assign(response, resData))
         }
     }
     return Promise.resolve(response)
