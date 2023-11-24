@@ -1,13 +1,12 @@
-import type { NextApiResponse } from 'next'
 import { NextHandler } from 'next-connect'
-import type { NextApiRequest } from 'next'
 import { dbConnect } from '@/utils/db'
 import mongoose from 'mongoose'
+import { NextRequest } from 'next/server'
 
-export interface DBRequest extends NextApiRequest {
+export interface DBRequest extends NextRequest {
     mongoose: typeof mongoose
 }
-export async function dbMiddleware(req: DBRequest, res: NextApiResponse, next: NextHandler) {
+export async function dbMiddleware(req: DBRequest, ctx: unknown, next: NextHandler) {
     req.mongoose = await dbConnect()
-    await next()
+    return await next()
 }

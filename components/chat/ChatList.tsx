@@ -1,18 +1,18 @@
 import { List, ListItem, ListItemText, IconButton, ListItemSecondaryAction, Box, Chip } from '@mui/material'
 import { Chat, ChatListItem } from '@/types/view/chat'
-import Router from 'next/router'
-import { clientRequest } from '@/src/utils/request'
 import { useRef, useState } from 'react'
 import { makeStyles } from 'tss-react/mui'
 import Add from '@mui/icons-material/Add'
 import Delete from '@mui/icons-material/Delete'
 import BookmarkBorder from '@mui/icons-material/BookmarkBorder'
 import clsx from 'clsx'
+import { requestWithNotification } from '../global/RequestInterceptor'
+import { useRouter } from 'next/navigation'
 
 export const useChatList = (chatList: ChatListItem[]) => {
     const [list, setList] = useState<ChatListItem[]>(chatList)
     const addChat = (presetId?: string) => {
-        return clientRequest.post<Chat>('/api/chat', { presetId }).then((data) => {
+        return requestWithNotification<Chat>('/api/chat', { method: 'POST', body: JSON.stringify({ presetId }) }).then(({ data }) => {
             const chatItem: ChatListItem = {
                 ...data,
                 messagesInfo: {
@@ -26,7 +26,7 @@ export const useChatList = (chatList: ChatListItem[]) => {
         })
     }
     const deleteChat = (id: string) => {
-        return clientRequest.delete<Chat>(`/api/chat/${id}`).then(() => {
+        return requestWithNotification<Chat>(`/api/chat/${id}`, { method: 'DELETE' }).then(() => {
             const deletedIdx = list.findIndex(({ _id }) => _id === id)
             const newList = [...list]
             const deletedChat = newList.splice(deletedIdx, 1)
@@ -101,6 +101,7 @@ interface ChatListProps {
 }
 
 export const ChatList: React.FC<ChatListProps> = ({ list, actions, onNavigate, selectedId }) => {
+    const router = useRouter()
     const { classes } = useStyles()
     const curDeleting = useRef<string>('')
 
@@ -108,7 +109,7 @@ export const ChatList: React.FC<ChatListProps> = ({ list, actions, onNavigate, s
         if (onNavigate) {
             onNavigate(id)
         } else {
-            curDeleting.current !== id && Router.push(`/chat/${id}`)
+            curDeleting.current !== id && router.push(`/chat/${id}`)
         }
     }
 

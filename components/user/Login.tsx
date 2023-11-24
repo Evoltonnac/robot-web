@@ -1,9 +1,9 @@
-import { clientRequest } from '@/src/utils/request'
 import { Button, TextField, Grid } from '@mui/material'
 import { useState } from 'react'
-import Router from 'next/router'
+import { useRouter } from 'next/navigation'
 import { useNotification } from '@/src/hooks/useNotification'
 import { useUser } from '../global/User'
+import { requestWithNotification } from '../global/RequestInterceptor'
 
 interface LoginProps {
     isRegister?: boolean
@@ -11,6 +11,7 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ isRegister }) => {
     const sendNotification = useNotification()
+    const router = useRouter()
 
     const { action } = useUser() || {}
 
@@ -42,14 +43,14 @@ const Login: React.FC<LoginProps> = ({ isRegister }) => {
                     sendNotification({ msg: '请保证两次密码输入一致', variant: 'error' })
                     return
                 }
-                clientRequest.post('/api/user', { username, password }).then(() => {
+                requestWithNotification('/api/user', { method: 'POST', body: JSON.stringify({ username, password }) }).then(() => {
                     action?.getUserInfo()
-                    Router.replace('/chat')
+                    router.replace('/chat')
                 })
             } else {
-                clientRequest.post('/api/user/login', { username, password }).then(() => {
+                requestWithNotification('/api/user/login', { method: 'POST', body: JSON.stringify({ username, password }) }).then(() => {
                     action?.getUserInfo()
-                    Router.replace('/chat')
+                    router.replace('/chat')
                 })
             }
         }

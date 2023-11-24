@@ -1,9 +1,10 @@
-import { clientCookie, SharedCookie } from '@/utils/shared'
-import { GetServerSidePropsContext } from 'next'
-import Router from 'next/router'
+import jsCookie from 'js-cookie'
+import { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/adapters/request-cookies'
+import { redirect } from 'next/navigation'
+
 // get current user token header
-export const getAuthorizationHeader = (req?: GetServerSidePropsContext['req']) => {
-    const AccessToken = new SharedCookie(req).get('AccessToken')
+export const getAuthorizationHeader = (serverCookies?: ReadonlyRequestCookies) => {
+    const AccessToken = serverCookies?.get('AccessToken')?.value || jsCookie.get('AccessToken')
     return {
         Authorization: `Bearer ${AccessToken || ''}`,
     }
@@ -15,7 +16,7 @@ export const getAuthorizationHeader = (req?: GetServerSidePropsContext['req']) =
  */
 export const logOut = () => {
     if (typeof window !== 'undefined') {
-        clientCookie.remove('currentUser')
-        Router.pathname.indexOf('/login') !== 0 && Router.replace('/login')
+        jsCookie.remove('currentUser')
+        location.pathname.indexOf('/login') !== -1 && redirect('/login')
     }
 }

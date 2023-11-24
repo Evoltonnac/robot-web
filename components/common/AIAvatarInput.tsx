@@ -2,7 +2,7 @@ import { Avatar, Button, ClickAwayListener, Divider, TextField } from '@mui/mate
 import { RobotIcon } from './Icons'
 import { makeStyles } from 'tss-react/mui'
 import { useEffect, useState } from 'react'
-import { clientRequest } from '@/src/utils/request'
+import { requestWithNotification } from '../global/RequestInterceptor'
 
 const useStyles = makeStyles<{ isShowPanel: boolean }>()((theme, { isShowPanel }) => ({
     container: {
@@ -72,10 +72,9 @@ export const AIAvatarInput: React.FC<AIAvatarInputProps> = ({ id, value, onChang
             return
         }
         setIsGenerating(true)
-        clientRequest
-            .post<{ url: string }>('api/pic/avatar', { prompt }, { timeout: 30000 })
-            .then(({ url }) => {
-                handleChangeImage(url)
+        requestWithNotification<{ url: string }>('api/pic/avatar', { method: 'POST', data: { prompt } })
+            .then(({ data }) => {
+                data.url && handleChangeImage(data.url)
             })
             .finally(() => {
                 setIsGenerating(false)
