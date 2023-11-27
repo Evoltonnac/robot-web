@@ -99,15 +99,17 @@ export const useChatBot = (chatid?: string) => {
     }
 }
 
-const useStyles = makeStyles()((theme) => ({
+const useStyles = makeStyles<{ isFullScreen?: boolean }>()((theme, { isFullScreen }) => ({
     container: {
-        height: '100%',
-        maxHeight: '100vh',
         overflow: 'hidden auto',
         position: 'relative',
         '::-webkit-scrollbar': {
             display: 'none',
         },
+        ...(!isFullScreen && {
+            height: '100%',
+            maxHeight: '100vh',
+        }),
     },
     contentArea: {
         padding: `${theme.spacing(5)} ${theme.spacing(2)} ${theme.spacing(20)}`,
@@ -150,11 +152,12 @@ const useStyles = makeStyles()((theme) => ({
 interface ChatBotProps {
     chatid?: string
     updateChatItem?: (id: string, messagesInfo: ChatListItem['messagesInfo']) => void
+    isFullScreen?: boolean
 }
 
-const ChatBot: React.FC<ChatBotProps> = ({ chatid, updateChatItem }) => {
+const ChatBot: React.FC<ChatBotProps> = ({ chatid, updateChatItem, isFullScreen }) => {
     const { user } = useUser() || {}
-    const { classes } = useStyles()
+    const { classes } = useStyles({ isFullScreen })
     const elContainer = useRef<HTMLDivElement>(null)
 
     const { messageList, preset, updateMessage, removeMessage, clearMessage } = useChatBot(chatid)
@@ -278,12 +281,11 @@ const ChatBot: React.FC<ChatBotProps> = ({ chatid, updateChatItem }) => {
     }, [messageList])
 
     useEffect(() => {
+        // abort send event stream when close
+        window.addEventListener('beforeunload', handleAbort)
         // abort send event stream when unmounted
         return handleAbort
     }, [])
-
-    // abort send event stream when close
-    window.addEventListener('beforeunload', handleAbort)
 
     // current chat rounds
     const chatRounds = messageList.filter(({ role }) => role === 'assistant').length
@@ -314,7 +316,15 @@ const ChatBot: React.FC<ChatBotProps> = ({ chatid, updateChatItem }) => {
                         ) : null}
                     </Box>
                     <ConfigPanel className={classes.configButton}></ConfigPanel>
-                    <Box position="absolute" left={0} bottom={0} width="100%" px={2} pb={2} bgcolor="background.default">
+                    <Box
+                        position={isFullScreen ? 'fixed' : 'absolute'}
+                        left={0}
+                        bottom={0}
+                        width="100%"
+                        px={2}
+                        pb={2}
+                        bgcolor="background.default"
+                    >
                         <AIPluginSelector className={classes.pluginSelector} />
                         <Chip className={classes.roundsChip} label={`对话轮数${chatRounds}/${MAX_ROUNDS}`} color="primary" />
                         {chatRounds < MAX_ROUNDS ? (
