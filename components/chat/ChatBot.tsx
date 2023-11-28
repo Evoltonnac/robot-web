@@ -201,17 +201,15 @@ const ChatBot: React.FC<ChatBotProps> = ({ chatid, updateChatItem, isFullScreen 
                 removeMessage(index)
                 throw new Error('未知错误')
             } else {
-                const reader = res.body.getReader()
-
+                const reader = res.body.pipeThrough(new TextDecoderStream()).getReader()
                 while (true) {
                     const { done, value } = await reader.read()
                     // stream done
                     if (done) {
                         break
                     }
-                    const chunkData = DECODER.decode(value)
-                    if (chunkData) {
-                        newMessage.content += chunkData
+                    if (value) {
+                        newMessage.content += value
                         updateMessage(newMessage, index)
                     }
                     if (sendCtrl.current === null) {
