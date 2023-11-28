@@ -2,21 +2,21 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Button, TextField, Box, Grid, Chip } from '@mui/material'
 import { makeStyles } from 'tss-react/mui'
+import useSWR from 'swr'
 import { ChatListItem, Message } from '@/types/view/chat'
-import SendIcon from '@mui/icons-material/Send'
-import DeleteOutlineRounded from '@mui/icons-material/DeleteOutlineRounded'
-import { DECODER } from '@/utils/shared'
-import MessageCard from './MessageCard'
-import { getAuthorizationHeader } from '@/src/utils/auth'
 import { Chat } from '@/types/view/chat'
+import { getAuthorizationHeader } from '@/src/utils/auth'
 import { MessageType } from '@/types/model/chat'
-import _ from 'lodash'
 import { MAX_ROUNDS } from '@/utils/constant'
 import { useUser } from '../global/User'
+import MessageCard from './MessageCard'
 import ConfigPanel from '../user/ConfigPanel'
-import useSWR from 'swr'
 import { AIPluginSelector } from '../common/AIPluginSelector'
 import { requestWithNotification } from '../global/RequestInterceptor'
+import SendIcon from '@mui/icons-material/Send'
+import DeleteOutlineRounded from '@mui/icons-material/DeleteOutlineRounded'
+import Typewriter from 'typewriter-effect/dist/core'
+import _ from 'lodash'
 
 export const useChatBot = (chatid?: string) => {
     const { data, mutate } = useSWR<Chat>(
@@ -201,18 +201,26 @@ const ChatBot: React.FC<ChatBotProps> = ({ chatid, updateChatItem, isFullScreen 
                 removeMessage(index)
                 throw new Error('未知错误')
             } else {
-                const reader = res.body.getReader()
+                const reader = res.body.pipeThrough(new TextDecoderStream()).getReader()
 
+                const typer = new Typewriter(null, {
+                    autoStart: true,
+                    delay: 33,
+                    onCreateTextNode: (character) => {
+                        console.log(character)
+                        newMessage.content += character
+                        updateMessage(newMessage, index)
+                        return null
+                    },
+                })
                 while (true) {
                     const { done, value } = await reader.read()
                     // stream done
                     if (done) {
                         break
                     }
-                    const chunkData = DECODER.decode(value)
-                    if (chunkData) {
-                        newMessage.content += chunkData
-                        updateMessage(newMessage, index)
+                    if (value) {
+                        typer.typeString(value).start()
                     }
                     if (sendCtrl.current === null) {
                         reader.cancel()
