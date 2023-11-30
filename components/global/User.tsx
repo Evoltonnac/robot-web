@@ -21,12 +21,12 @@ export const useUser = () => {
 export const UserProvider: React.FC<FCProps> = ({ children }) => {
     // get userinfo
     const [userData, setUserData] = useState<User>()
-
     const getUserInfo = () => {
         request<User>('/api/user').then((res) => {
             res.data && setUserData(res.data)
         })
     }
+
     // request onshow and try to warm-up instance
     const getUserInfoThrottle = useRef(throttle(getUserInfo, 60000))
     const handleVisibilityChange = () => {
@@ -42,21 +42,24 @@ export const UserProvider: React.FC<FCProps> = ({ children }) => {
         }
     }, [])
 
-    // update user config
-    const isUpdating = useRef(false)
-    const updateConfig = useCallback((config: Partial<User['config']>) => {
-        if (isUpdating.current) {
-            return
-        }
-        isUpdating.current = true
+    // render new config at once and throttled update user config
+    const updateUserConfig = (config: Partial<User['config']>) => {
         request<User>(`/api/user`, { method: 'PATCH', data: { config } })
-            .then((res) => {
-                res.data && setUserData(res.data)
-            })
-            .finally(() => {
-                isUpdating.current = false
-            })
-    }, [])
+    }
+    const updateUserConfigThrottle = useRef(throttle(updateUserConfig, 2000))
+    const updateConfig = useCallback(
+        (config: Partial<User['config']>) => {
+            config?.activePlugins
+            if (userData) {
+                setUserData({
+                    ...userData,
+                    config: Object.assign(userData?.config || {}, config) as User['config'],
+                })
+            }
+            updateUserConfigThrottle.current(config)
+        },
+        [userData]
+    )
 
     const userContextObj = useMemo(
         () => ({
