@@ -207,7 +207,6 @@ const ChatBot: React.FC<ChatBotProps> = ({ chatid, updateChatItem, isFullScreen 
                     autoStart: true,
                     delay: 33,
                     onCreateTextNode: (character) => {
-                        console.log(character)
                         newMessage.content += character
                         updateMessage(newMessage, index)
                         return null
