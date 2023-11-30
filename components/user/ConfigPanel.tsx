@@ -1,5 +1,5 @@
 import { Box, IconButton, Popover, Switch } from '@mui/material'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Settings from '@mui/icons-material/Settings'
 import Public from '@mui/icons-material/Public'
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment'
@@ -10,7 +10,6 @@ import { linearHexColor } from '@/src/utils/calculator'
 import TemperatureSlider from '../common/TemperatureSlider'
 import { blue, red } from '@mui/material/colors'
 import { UserConfig } from '@/types/model/user'
-import { debounce } from 'lodash'
 
 interface ConfigPanelProps {
     className?: string
@@ -43,6 +42,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ className }) => {
     const config = user?.config
     const { classes } = useStyles()
 
+    // popover control
     const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null)
     const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
         setAnchorEl(event.currentTarget)
@@ -51,23 +51,25 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ className }) => {
         setAnchorEl(null)
     }
 
+    // update config
     const [userConfig, setUserConfig] = useState<Pick<UserConfig, 'serpEnabled' | 'temperature'>>({ serpEnabled: 0, temperature: 0 })
 
     useEffect(() => {
-        config && setUserConfig(config)
+        config &&
+            setUserConfig({
+                serpEnabled: config.serpEnabled,
+                temperature: config.temperature,
+            })
     }, [config])
-
-    // debounce update
-    const updateConfig = useRef(debounce((config) => action?.updateConfig(config), 500, { leading: false }))
 
     const updateSerpEnabled = (e: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
         const serpEnabled = checked ? 1 : 0
         setUserConfig((state) => ({ ...state, serpEnabled }))
-        updateConfig.current({ ...userConfig, serpEnabled })
+        action?.updateConfig({ ...userConfig, serpEnabled })
     }
     const updateTemperature = (value: number) => {
         setUserConfig((state) => ({ ...state, temperature: value }))
-        updateConfig.current({ ...userConfig, temperature: value })
+        action?.updateConfig({ ...userConfig, temperature: value })
     }
 
     return (
