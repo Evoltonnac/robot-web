@@ -1,6 +1,5 @@
 import jsCookie from 'js-cookie'
 import { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/adapters/request-cookies'
-import { redirect } from 'next/navigation'
 
 // get current user token header
 export const getAuthorizationHeader = (serverCookies?: ReadonlyRequestCookies) => {
@@ -17,6 +16,6 @@ export const getAuthorizationHeader = (serverCookies?: ReadonlyRequestCookies) =
 export const logOut = () => {
     if (typeof window !== 'undefined') {
         jsCookie.remove('currentUser')
-        location.pathname.indexOf('/login') !== -1 && redirect('/login')
+        location.pathname.indexOf('/login') === -1 && location.replace('/login')
     }
 }

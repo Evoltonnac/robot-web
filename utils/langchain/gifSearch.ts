@@ -106,5 +106,5 @@ export const GifSearch = new AIPluginTool({
     description: `Call this tool to get the OpenAPI spec (and usage guide) for interacting with the ${gifSearchJson.name_for_human} API. You should only call this ONCE! What is the ${gifSearchJson.name_for_human} API useful for? ${gifSearchJson.description_for_human}`,
     apiSpec: `Usage Guide: ${gifSearchJson.description_for_model}
 
-OpenAPI Spec in YAML format:\n${gifSearchApiYaml}`,
+You should use request tools to interact with OpenAPI. OpenAPI Spec in YAML format:\n${gifSearchApiYaml}`,
 })
