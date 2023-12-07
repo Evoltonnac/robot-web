@@ -119,13 +119,14 @@ router.post(async (req) => {
         const agent = await initializeAgentExecutorWithOptions(tools, llm, {
             agentType: 'openai-functions',
             agentArgs: {
-                prefix: `The UTC time is ${new Date().toString()}.`,
+                prefix: `The UTC time is ${new Date().toString()}. You should not call the same tool twice`,
             },
             memory: new BufferMemory({
                 chatHistory,
                 memoryKey: 'chat_history',
                 returnMessages: true,
             }),
+            maxIterations: 3,
         })
 
         agent.call({ input: content }, [handlers]).catch((err) => {
