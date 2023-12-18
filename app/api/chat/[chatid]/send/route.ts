@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server'
 import { LangChainStream, StreamingTextResponse } from 'ai'
 import { createCustomEdgeRouter } from '@/services/middlewares/edge'
 import { ChatOpenAI } from 'langchain/chat_models/openai'
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai'
 import { AIMessage, HumanMessage, SystemMessage } from 'langchain/schema'
 import { initializeAgentExecutorWithOptions } from 'langchain/agents'
 import { BufferMemory, ChatMessageHistory } from 'langchain/memory'
@@ -83,6 +84,12 @@ router.post(async (req) => {
         streaming: true,
     })
 
+    const llmGemini = new ChatGoogleGenerativeAI({
+        modelName: 'gemini-pro',
+        maxOutputTokens: 500,
+        temperature: chatData.preset ? chatData.preset.temperature : temperature,
+    })
+
     // tools for langchain agent
     const tools: Tool[] = getPlugins(
         [new ImageSearch(), GifSearch, new WikipediaQueryRun({ topKResults: 3, maxDocContentLength: 4000 }), new BrowserPilot()],
@@ -133,7 +140,7 @@ router.post(async (req) => {
             console.error(err)
         })
     } else {
-        const chain = new ConversationChain({ llm, memory: new BufferMemory({ chatHistory }) })
+        const chain = new ConversationChain({ llm: llmGemini, memory: new BufferMemory({ chatHistory }) })
         chain.call({ input: content }, [handlers]).catch((err) => {
             console.error(err)
         })
