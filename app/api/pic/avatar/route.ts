@@ -10,12 +10,13 @@ router.post(async (req) => {
         throw new Error(JSON.stringify({ errno: 'A0601', errmsg: '缺少提示词', status: 400 }))
     }
     try {
-        const response = await getOpenai().createImage({
+        const response = await getOpenai().images.generate({
+            model: 'dall-e-2',
             prompt: `icon for ${prompt}`,
             n: 1,
             size: '256x256',
         })
-        const { data } = await response.json()
+        const { data } = await response
         return NextResponse.json({
             url: data[0].url,
         })

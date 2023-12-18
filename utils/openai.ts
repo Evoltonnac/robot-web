@@ -1,14 +1,12 @@
-import { Configuration, OpenAIApi } from 'openai-edge'
+import OpenAI from 'openai'
 
-let openai: OpenAIApi | null = null
+let openai: OpenAI | null = null
 
-export function getOpenai(): OpenAIApi {
+export function getOpenai(): OpenAI {
     if (openai) {
         return openai
     }
-    const configuration = new Configuration({
+    return (openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
-    })
-    openai = new OpenAIApi(configuration)
-    return openai
+    }))
 }
