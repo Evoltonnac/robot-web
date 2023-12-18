@@ -182,8 +182,8 @@ export const PresetEditor: React.FC<PresetEditorProps> = ({ open, preset, onSubm
                                     id="temperature-slider"
                                     className={classes.temperatureSlider}
                                     min={0}
-                                    max={2}
-                                    step={0.1}
+                                    max={1}
+                                    step={0.05}
                                     valueLabelDisplay="auto"
                                 />
                             )}
