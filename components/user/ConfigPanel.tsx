@@ -110,8 +110,8 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ className }) => {
                                 value={userConfig?.temperature}
                                 onChange={(_, val) => updateTemperature(Array.isArray(val) ? val[0] : val)}
                                 min={0}
-                                max={2}
-                                step={0.1}
+                                max={1}
+                                step={0.05}
                                 valueLabelDisplay="auto"
                             />
                         </Box>
