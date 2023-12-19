@@ -119,7 +119,7 @@ router.post(async (req) => {
     if (tools.length) {
         const modelWithTools = llm.bind({ tools: tools.map(formatToOpenAITool) })
         const prompt = ChatPromptTemplate.fromMessages([
-            ['ai', assistantPrompt + '\nYou should not call the same tool twice\nThe UTC time is ${new Date().toString()}.'],
+            ['ai', assistantPrompt + `\nYou should not call the same tool twice\nThe UTC time is ${new Date().toString()}.`],
             ['human', '{input}'],
             new MessagesPlaceholder('agent_scratchpad'),
         ])
