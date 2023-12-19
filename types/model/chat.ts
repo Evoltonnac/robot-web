@@ -21,4 +21,5 @@ export interface Message {
 
 export const enum MessageType {
     TEXT = 1,
+    IMAGE_URL = 2,
 }
