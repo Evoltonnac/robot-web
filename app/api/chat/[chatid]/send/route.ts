@@ -6,6 +6,7 @@ import { SerpAPITool } from '@/utils/langchain/serpApiTool'
 import { ImageSearch } from '@/utils/langchain/imageSearch'
 import { BrowserPilot } from '@/utils/langchain/browserPilot'
 import { GifSearch } from '@/utils/langchain/gifSearch'
+import { Dalle } from '@/utils/langchain/dalle'
 import { ChatOpenAI } from 'langchain/chat_models/openai'
 import { LangChainStream, StreamingTextResponse } from 'ai'
 import { AgentExecutor } from 'langchain/agents'
@@ -86,7 +87,13 @@ router.post(async (req) => {
 
     // tools for langchain agent
     const tools: Tool[] = getPlugins(
-        [new ImageSearch(), GifSearch, new WikipediaQueryRun({ topKResults: 3, maxDocContentLength: 4000 }), new BrowserPilot()],
+        [
+            new ImageSearch(),
+            GifSearch,
+            new WikipediaQueryRun({ topKResults: 3, maxDocContentLength: 4000 }),
+            new BrowserPilot(),
+            new Dalle(),
+        ],
         activePlugins
     )
 

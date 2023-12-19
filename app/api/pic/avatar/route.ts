@@ -16,9 +16,8 @@ router.post(async (req) => {
             n: 1,
             size: '256x256',
         })
-        const { data } = await response
         return NextResponse.json({
-            url: data[0].url,
+            url: response.data[0].url,
         })
     } catch (error) {
         console.error(error)

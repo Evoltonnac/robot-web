@@ -5,6 +5,7 @@ import { Tools } from '@/types/server/langchain'
 import ImageSearchIcon from '@mui/icons-material/ImageSearch'
 import GifBoxIcon from '@mui/icons-material/GifBox'
 import TravelExplore from '@mui/icons-material/TravelExplore'
+import ImageIcon from '@mui/icons-material/Image'
 import { SvgIconComponent } from '@mui/icons-material'
 import clsx from 'clsx'
 import { useUser } from '../global/User'
@@ -53,6 +54,11 @@ const pluginMap: Array<{
         label: '图片搜索',
         icon: ImageSearchIcon,
         value: Tools.ImageSearch,
+    },
+    {
+        label: '图片生成',
+        icon: ImageIcon,
+        value: Tools.ImageGenerator,
     },
     {
         label: 'GIF搜索',
