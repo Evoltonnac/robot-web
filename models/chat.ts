@@ -5,7 +5,7 @@ const Schema = mongoose.Schema
 const MessageSchema = new Schema({
     type: {
         type: Number,
-        enum: [1],
+        enum: [1, 2],
         required: true,
     },
     content: {

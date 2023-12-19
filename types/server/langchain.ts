@@ -21,3 +21,18 @@ export const ToolsMap: Record<Tools, Plugins[]> = {
     [Tools.GifSearch]: [Plugins.GifSearch],
     [Tools.SearchEnhance]: [Plugins.BrowserPilot, Plugins.Wikipedia],
 }
+
+export type LangChainMessage =
+    | {
+          type: 'text'
+          text: string
+      }
+    | {
+          type: 'image_url'
+          image_url:
+              | string
+              | {
+                    url: string
+                    detail?: 'auto' | 'low' | 'high'
+                }
+      }
