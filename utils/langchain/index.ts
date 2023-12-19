@@ -1,6 +1,7 @@
 import { AIPluginTool, RequestsGetTool, SerpAPIParameters, Tool } from 'langchain/tools'
 import { RequestsPostTool } from './RequestsPostTool'
-import { Plugins, Tools, ToolsMap } from '@/types/server/langchain'
+import { LangChainMessage, Plugins, Tools, ToolsMap } from '@/types/server/langchain'
+import { Message, MessageType } from '@/types/model/chat'
 
 type Language = 'zh-cn' | 'ja' | 'en'
 
@@ -47,4 +48,25 @@ export function getPlugins(plugins: Tool[], activeTools: Tools[]): Tool[] {
         activePlugins.unshift(new RequestsGetTool(), new RequestsPostTool())
     }
     return activePlugins
+}
+
+// format messages to langchain format
+export function formatMessages(m: Message): LangChainMessage & { role: Message['role'] } {
+    switch (m.type) {
+        case MessageType.IMAGE_URL:
+            return {
+                type: 'image_url',
+                image_url: m.content,
+                role: m.role,
+            }
+            break
+        case MessageType.TEXT:
+        default:
+            return {
+                type: 'text',
+                text: m.content,
+                role: m.role,
+            }
+            break
+    }
 }
