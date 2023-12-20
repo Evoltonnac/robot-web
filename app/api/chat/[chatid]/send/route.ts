@@ -126,9 +126,10 @@ router.post(async (req) => {
     if (tools.length) {
         const modelWithTools = llm.bind({ tools: tools.map(formatToOpenAITool) })
         const prompt = ChatPromptTemplate.fromMessages([
-            ['ai', assistantPrompt + `\nYou should not call the same tool twice\nThe UTC time is ${new Date().toString()}.`],
-            ['human', '{input}'],
             new MessagesPlaceholder('agent_scratchpad'),
+            ['system', `\nYou should not call the same tool twice\nThe UTC time is ${new Date().toString()}.`],
+            ['system', assistantPrompt],
+            ['human', '{input}'],
         ])
 
         const runnableAgent = RunnableSequence.from([
@@ -158,7 +159,15 @@ router.post(async (req) => {
     }
     // base chat agent
     else {
-        const chain = new ConversationChain({ llm, memory: new BufferMemory({ chatHistory }) })
+        const chain = new ConversationChain({
+            llm,
+            prompt: ChatPromptTemplate.fromMessages([
+                ['system', `\nThe UTC time is ${new Date().toString()}.`],
+                ['system', assistantPrompt],
+                ['human', '{input}'],
+            ]),
+            memory: new BufferMemory({ chatHistory }),
+        })
         chain.call({ input: content }, [handlers]).catch((err) => {
             console.error(err)
         })
