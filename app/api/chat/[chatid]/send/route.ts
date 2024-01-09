@@ -129,6 +129,7 @@ router.post(async (req) => {
             new MessagesPlaceholder('agent_scratchpad'),
             ['system', `\nYou should not call the same tool twice\nThe UTC time is ${new Date().toString()}.`],
             ['system', assistantPrompt],
+            new MessagesPlaceholder('history'),
             ['human', '{input}'],
         ])
 
@@ -148,6 +149,8 @@ router.post(async (req) => {
             memory: new BufferMemory({
                 chatHistory,
                 memoryKey: 'chat_history',
+                inputMessagesKey: 'input',
+                historyMessagesKey: 'history',
                 returnMessages: true,
             }),
             maxIterations: 3,
@@ -164,9 +167,14 @@ router.post(async (req) => {
             prompt: ChatPromptTemplate.fromMessages([
                 ['system', `\nThe UTC time is ${new Date().toString()}.`],
                 ['system', assistantPrompt],
+                new MessagesPlaceholder('history'),
                 ['human', '{input}'],
             ]),
-            memory: new BufferMemory({ chatHistory }),
+            memory: new BufferMemory({
+                chatHistory,
+                inputMessagesKey: 'input',
+                historyMessagesKey: 'history',
+            }),
         })
         chain.call({ input: content }, [handlers]).catch((err) => {
             console.error(err)
