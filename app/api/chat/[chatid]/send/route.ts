@@ -13,9 +13,8 @@ import { AgentExecutor } from 'langchain/agents'
 import { formatToOpenAIToolMessages } from 'langchain/agents/format_scratchpad/openai_tools'
 import { OpenAIToolsAgentOutputParser, type ToolsAgentStep } from 'langchain/agents/openai/output_parser'
 import { ConversationChain } from 'langchain/chains'
-import { BufferMemory, ChatMessageHistory } from 'langchain/memory'
 import { ChatPromptTemplate, MessagesPlaceholder } from 'langchain/prompts'
-import { AIMessage, HumanMessage, SystemMessage } from 'langchain/schema'
+import { AIMessage, BaseMessage, HumanMessage, SystemMessage } from 'langchain/schema'
 import { RunnableSequence } from 'langchain/schema/runnable'
 import { Tool, WikipediaQueryRun, formatToOpenAITool } from 'langchain/tools'
 
@@ -110,17 +109,15 @@ router.post(async (req) => {
     serpEnabled && tools.push(serpApiTool)
 
     // chat history
-    const chatHistory = new ChatMessageHistory(
-        messageList
-            .slice(0, messageList.length - 1)
-            .map((m) =>
-                m.role == 'system'
-                    ? new SystemMessage({ content: [m] })
-                    : m.role == 'user'
-                    ? new HumanMessage({ content: [m] })
-                    : new AIMessage({ content: [m] })
-            )
-    )
+    const chatHistory = messageList
+        .slice(0, messageList.length - 1)
+        .map((m) =>
+            m.role == 'system'
+                ? new SystemMessage({ content: [m] })
+                : m.role == 'user'
+                ? new HumanMessage({ content: [m] })
+                : new AIMessage({ content: [m] })
+        )
 
     // OpenAI tool agent
     if (tools.length) {
@@ -129,13 +126,16 @@ router.post(async (req) => {
             new MessagesPlaceholder('agent_scratchpad'),
             ['system', `\nYou should not call the same tool twice\nThe UTC time is ${new Date().toString()}.`],
             ['system', assistantPrompt],
+            new MessagesPlaceholder('history'),
             ['human', '{input}'],
         ])
 
         const runnableAgent = RunnableSequence.from([
             {
-                input: (i: { input: string; steps: ToolsAgentStep[] }) => i.input,
-                agent_scratchpad: (i: { input: string; steps: ToolsAgentStep[] }) => formatToOpenAIToolMessages(i.steps),
+                input: (i: { input: string; steps: ToolsAgentStep[]; history: BaseMessage[] }) => i.input,
+                agent_scratchpad: (i: { input: string; steps: ToolsAgentStep[]; history: BaseMessage[] }) =>
+                    formatToOpenAIToolMessages(i.steps),
+                history: (i: { input: string; steps: ToolsAgentStep[]; history: BaseMessage[] }) => i.history,
             },
             prompt,
             modelWithTools,
@@ -145,15 +145,10 @@ router.post(async (req) => {
         const executor = AgentExecutor.fromAgentAndTools({
             agent: runnableAgent,
             tools,
-            memory: new BufferMemory({
-                chatHistory,
-                memoryKey: 'chat_history',
-                returnMessages: true,
-            }),
             maxIterations: 3,
         })
 
-        executor.call({ input: content }, [handlers]).catch((err) => {
+        executor.call({ input: content, history: chatHistory }, [handlers]).catch((err) => {
             console.error(err)
         })
     }
@@ -164,9 +159,9 @@ router.post(async (req) => {
             prompt: ChatPromptTemplate.fromMessages([
                 ['system', `\nThe UTC time is ${new Date().toString()}.`],
                 ['system', assistantPrompt],
+                ...chatHistory,
                 ['human', '{input}'],
             ]),
-            memory: new BufferMemory({ chatHistory }),
         })
         chain.call({ input: content }, [handlers]).catch((err) => {
             console.error(err)
