@@ -114,8 +114,8 @@ router.post(async (req) => {
             m.role == 'system'
                 ? new SystemMessage({ content: [m] })
                 : m.role == 'user'
-                    ? new HumanMessage({ content: [m] })
-                    : new AIMessage({ content: [m] })
+                ? new HumanMessage({ content: [m] })
+                : new AIMessage({ content: [m] })
         )
 
     // OpenAI tool agent
