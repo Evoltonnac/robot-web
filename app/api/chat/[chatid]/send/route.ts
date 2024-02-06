@@ -65,9 +65,8 @@ router.post(async (req) => {
     const messageList = chatData.messages.map(formatMessages)
 
     // add system prompt at top
-    const assistantPrompt = `${
+    const assistantPrompt =
         chatData.preset?.prompt || 'You are a friendly AI assistant. Answer the following questions truthfully and as best as you can.'
-    }`
 
     const { stream, handlers } = LangChainStream({
         async onCompletion(text) {
@@ -77,7 +76,7 @@ router.post(async (req) => {
 
     // chat gpt llm
     const llm = new ChatOpenAI({
-        modelName: 'gpt-4-1106-preview',
+        modelName: 'gpt-4-turbo-preview',
         maxTokens: 500,
         // if preset exists, use preset temperature first
         temperature: chatData.preset ? chatData.preset.temperature : temperature,
