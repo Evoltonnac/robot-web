@@ -1,6 +1,6 @@
 # Robot Web
 
-This is a chatbot website built using Next.js, Material-UI, and MongoDB. It utilizes [langchain.js](https://github.com/langchain-ai/langchain) for conversation control.
+This is a chatbot website built using Next.js, Material-UI, and MongoDB. It utilizes [langchain.js](https://github.com/langchain-ai/langchainjs) for conversation control.
 
 ## Features
 
